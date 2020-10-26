@@ -1,5 +1,6 @@
 import paramiko
-from tkinter import Tk, Frame, Button, Grid, ttk, StringVar, Label
+import subprocess
+from tkinter import Tk, Frame, Button, Grid, ttk, StringVar, Label, Scrollbar
 
 # Variables
 width = 800
@@ -107,14 +108,26 @@ fTabs.grid(row=1,column=2)
 
 # Tab list #
 tabs = ttk.Notebook(fTabs)
+tabs.grid(row=1,column=1,sticky="nsew")
+Grid.columnconfigure(fTabs,1,weight=1)
+Grid.rowconfigure(fTabs,1,weight=1)
 
-# Tab 1
-tab1 = Frame(tabs,width=596,height=538,bg="grey")
+# SSH tab
+tSSH = Frame(tabs,bg="grey")
+tabs.add(tSSH,text="SSH")
+fOutput = Frame(tSSH,bg="black")
+fOutput.grid(row=1,column=1,sticky="nsew")
+Grid.columnconfigure(tSSH,1,weight=1)
+Grid.rowconfigure(tSSH,1,weight=1)
 
+sOutput = Scrollbar(fOutput)
+sOutput.grid(row=1,column=1,sticky="nsew")
+Grid.columnconfigure(fOutput,1,weight=1)
+Grid.rowconfigure(fOutput,1,weight=1)
 
-tab2 = Frame(tabs)
-tabs.add(tab1,text="test")
-tabs.add(tab2,text="test2")
-tabs.grid(row=1,column=1)
+# FTP tab
+tFTP = Frame(tabs)
+tabs.add(tFTP,text="FTP")
+
 
 root.mainloop()
