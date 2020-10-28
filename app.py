@@ -17,13 +17,15 @@ password = ""
 connected_ssh = False
 
 
+
 ### Functions ###
 # Button
-def button(width, height, row, column, text, command):
+def button(width, height, row, column, text, command, image=None):
     frame = Frame(fToolbar, width=width, height=height)
     frame.grid_propagate(False)
     frame.grid(row=row, column=column)
-    button = Button(frame, text=text, activeforeground="grey", command=command)
+
+    button = Button(frame, text=text, activeforeground="grey", command=command, image=image, compound="left")
     button.grid(row=1, column=1, sticky="nsew")
     Grid.columnconfigure(frame, 1, weight=1)
     Grid.rowconfigure(frame, 1, weight=1)
@@ -79,6 +81,13 @@ root.title("Remotre")
 root.geometry(f"{width}x{height}+500+250")
 root.resizable(width=False, height=False)
 
+# Images
+iSSH = PhotoImage(file = "./icons/ssh.png")
+iFTP = PhotoImage(file = "./icons/ftp.png")
+iLoad = PhotoImage(file = "./icons/load.png")
+iSave = PhotoImage(file = "./icons/save.png")
+iDelete = PhotoImage(file = "./icons/delete.png")
+
 ### Toolbar widgets ###
 # Toolbar frame #
 fToolbar = Frame(root, width=150, height=600, bg="grey")
@@ -86,19 +95,37 @@ fToolbar.grid_propagate(False)
 fToolbar.grid(row=1, column=1)
 
 # Connect ssh button
-button(width=150, height=50, row=1, column=1, text="Connect SSH", command=connect_ssh)
+button(width=150, height=50, row=1, column=1, text="Connect SSH", command=connect_ssh, image=iSSH)
 
 # Connect ftp button
-button(width=150, height=50, row=2, column=1, text="Connect FTP", command=connect_ftp)
+button(width=150, height=50, row=2, column=1, text="Connect FTP", command=connect_ftp, image=iFTP)
 
-# Separator frame
-fSeparator = Frame(fToolbar, width=150, height=300, bg="black")
-fSeparator.grid_propagate(False)
-fSeparator.grid(row=3, column=1)
+# Selection frame
+fSelection = Frame(fToolbar, width=150, height=225)
+fSelection.grid_propagate(False)
+fSelection.grid(row=3, column=1)
+
+flSelection = Frame(fSelection, width=134, height=225)
+flSelection.grid_propagate(False)
+flSelection.grid(row=1, column=1)
+lSelection = Listbox(flSelection)
+lSelection.grid_propagate(False)
+lSelection.grid(row=1, column=1, sticky="nsew")
+Grid.columnconfigure(flSelection, 1, weight=1)
+Grid.rowconfigure(flSelection, 1, weight=1)
+
+sSelection = Scrollbar(fSelection, orient="vertical")
+sSelection.config(command=lSelection.yview)
+sSelection.grid(row=1, column=2, sticky="nsew")
+lSelection.config(yscrollcommand=sSelection.set)
+Grid.columnconfigure(fSelection, 2, weight=1)
+
+for x in range(100):
+    lSelection.insert(END, f"Server {str(x+1)}")
 
 # Notification text
 sNotification = StringVar()
-fNotification = Frame(fToolbar, width=150, height=25, bg="grey")
+fNotification = Frame(fToolbar, width=150, height=25)
 fNotification.grid_propagate(False)
 fNotification.grid(row=4, column=1)
 tNotification = Label(fNotification, textvariable=sNotification, fg="red")
@@ -106,24 +133,25 @@ tNotification.grid(row=1, column=1, sticky="nsew")
 Grid.columnconfigure(fNotification, 1, weight=1)
 Grid.rowconfigure(fNotification, 1, weight=1)
 
-# Combobox
-fDropdown = Frame(fToolbar, width=150, height=25)
-fDropdown.grid_propagate(False)
-fDropdown.grid(row=5, column=1)
-cValue = StringVar()
-cLogins = ttk.Combobox(fDropdown, textvariable=cValue)
-cLogins.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(fDropdown, 1, weight=1)
-Grid.rowconfigure(fDropdown, 1, weight=1)
+# Entry frame #
+fEntry = Frame(fToolbar, width=150, height=100, bg="grey")
+fEntry.grid_propagate(False)
+fEntry.grid(row=5, column=1)
+
+# Username
+Label(fEntry, text="Username:").grid(row=1, column=1, sticky=E)
+eUsername = Entry(fEntry)
+eUsername.grid(row=1, column=2)
+
 
 # Load button
-button(width=150, height=50, row=6, column=1, text="Load", command=load)
+button(width=150, height=50, row=6, column=1, text="Load", command=load, image=iLoad)
 
 # Save button
-button(width=150, height=50, row=7, column=1, text="Save", command=save)
+button(width=150, height=50, row=7, column=1, text="Save", command=save, image=iSave)
 
 # Delete button
-button(width=150, height=50, row=8, column=1, text="Delete", command=delete)
+button(width=150, height=50, row=8, column=1, text="Delete", command=delete, image=iDelete)
 
 ### Tabs ###
 # Tab frame #
