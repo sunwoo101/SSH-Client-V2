@@ -1,17 +1,17 @@
-import paramiko
-import subprocess
+from paramiko import *
 from tkinter import *
 from tkinter import ttk
+from tkinter.font import *
 from tkinter.scrolledtext import *
 
 
 # Variables
-width = 800
-height = 600
+width = 900
+height = 650
 
 name = ""
 username = ""
-host = ""
+hostname = ""
 port = "22"
 password = ""
 connected_ssh = False
@@ -25,17 +25,25 @@ def button(width, height, row, column, text, command, image=None):
     frame.grid_propagate(False)
     frame.grid(row=row, column=column)
 
-    button = Button(frame, text=text, activeforeground="grey", command=command, image=image, compound="left")
+    button = Button(frame, text=text, activeforeground="grey", command=command, image=image, compound="left", anchor=W)
     button.grid(row=1, column=1, sticky="nsew")
     Grid.columnconfigure(frame, 1, weight=1)
     Grid.rowconfigure(frame, 1, weight=1)
 
 
 # Connect ssh
-def connect_ssh():
+def connect_ssh(hostname, port=22, username=None, password=None, pkey=None):
+    global ssh_connection
     global connected_ssh
-    sNotification.set("Connected SSH")
-    connected_ssh = True
+    if connected_ssh == False:
+        try:
+            connected_ssh = True
+            ssh_connection = SSHClient()
+            ssh_connection.load_system_host_keys()
+            ssh_connection.set_missing_host_key_policy(AutoAddPolicy())
+            ssh_connection.connect()
+        except:
+            print("Entries are empty")
 
 
 # Connect ftp
@@ -60,18 +68,68 @@ def delete():
     connected_ssh = False
 
 
-# Input
-def input(event):
+# Output
+def output(event):
     global terminal_input, connected_ssh
-    input = terminal_input.get()
+    output = terminal_input.get()
     terminal_output.configure(state="normal")
     if connected_ssh:
-        terminal_output.insert(INSERT, f"root@ubuntu: {input}\n")
+        terminal_output.insert(INSERT, f"root@ubuntu: {output}\n")
     else:
         terminal_output.insert(INSERT, "No Connection\n")
     terminal_output.see(END)
     terminal_output.configure(state="disabled")
     terminal_input.delete(0, END)
+
+
+# RGB
+def RGB():
+    global vRGB
+    global RGB_stage
+    list_RGB = list(vRGB)
+
+    # Stage switching #
+    # Stage 1
+    if vRGB == (235, 52, 52):
+        RGB_stage = 1
+    # Stage 2
+    if vRGB == (235, 235, 52):
+        RGB_stage = 2
+    # Stage 3
+    if vRGB == (52, 235, 52):
+        RGB_stage = 3
+    # Stage 4
+    if vRGB == (52, 235, 235):
+        RGB_stage = 4
+    # Stage 5
+    if vRGB == (52, 52, 235):
+        RGB_stage = 5
+    # Stage 6
+    if vRGB == (235, 52, 235):
+        RGB_stage = 6
+
+    # Stage 1
+    if RGB_stage == 1:
+        list_RGB[1] += 1
+    # Stage 2
+    if RGB_stage == 2:
+        list_RGB[0] -= 1
+    # Stage 3
+    if RGB_stage == 3:
+        list_RGB[2] += 1
+    # Stage 4
+    if RGB_stage == 4:
+        list_RGB[1] -= 1
+    # Stage 5
+    if RGB_stage == 5:
+        list_RGB[0] += 1
+    # Stage 6
+    if RGB_stage == 6:
+        list_RGB[2] -= 1
+
+    vRGB = tuple(list_RGB)
+    lRGB.config(fg="#%02x%02x%02x" % vRGB)
+    root.after(5, RGB)
 
 
 ### Window setup ###
@@ -90,20 +148,33 @@ iDelete = PhotoImage(file = "./icons/delete.png")
 
 ### Toolbar widgets ###
 # Toolbar frame #
-fToolbar = Frame(root, width=150, height=600, bg="grey")
+fToolbar = Frame(root, width=150, height=650, bg="grey")
 fToolbar.grid_propagate(False)
 fToolbar.grid(row=1, column=1)
 
+# RGB watermark
+RGB_stage = 1
+vRGB = (235, 52, 52)
+sRGB = StringVar()
+fRGB = Frame(fToolbar, width=150, height=50)
+fRGB.grid_propagate(False)
+fRGB.grid(row=1, column=1, sticky="nsew")
+lRGB = Label(fRGB, textvariable=sRGB, fg="#%02x%02x%02x" % vRGB)
+lRGB["font"] = Font(size=36)
+sRGB.set("Remotre")
+lRGB.grid(row=1, column=1, sticky="nsew")
+RGB()
+
 # Connect ssh button
-button(width=150, height=50, row=1, column=1, text="Connect SSH", command=connect_ssh, image=iSSH)
+button(width=150, height=50, row=2, column=1, text="Connect SSH", command=connect_ssh, image=iSSH)
 
 # Connect ftp button
-button(width=150, height=50, row=2, column=1, text="Connect FTP", command=connect_ftp, image=iFTP)
+button(width=150, height=50, row=3, column=1, text="Connect FTP", command=connect_ftp, image=iFTP)
 
 # Selection frame
 fSelection = Frame(fToolbar, width=150, height=225)
 fSelection.grid_propagate(False)
-fSelection.grid(row=3, column=1)
+fSelection.grid(row=4, column=1)
 
 flSelection = Frame(fSelection, width=134, height=225)
 flSelection.grid_propagate(False)
@@ -127,7 +198,7 @@ for x in range(100):
 sNotification = StringVar()
 fNotification = Frame(fToolbar, width=150, height=25)
 fNotification.grid_propagate(False)
-fNotification.grid(row=4, column=1)
+fNotification.grid(row=5, column=1)
 tNotification = Label(fNotification, textvariable=sNotification, fg="red")
 tNotification.grid(row=1, column=1, sticky="nsew")
 Grid.columnconfigure(fNotification, 1, weight=1)
@@ -136,26 +207,40 @@ Grid.rowconfigure(fNotification, 1, weight=1)
 # Entry frame #
 fEntry = Frame(fToolbar, width=150, height=100, bg="grey")
 fEntry.grid_propagate(False)
-fEntry.grid(row=5, column=1)
+fEntry.grid(row=6, column=1)
 
 # Username
-Label(fEntry, text="Username:").grid(row=1, column=1, sticky=E)
-eUsername = Entry(fEntry)
-eUsername.grid(row=1, column=2)
+eUsername = Entry(fEntry, bd=1)
+eUsername.grid(row=1, column=1)
+eUsername.insert(0, "Username")
 
+# Host
+eHost = Entry(fEntry, bd=1)
+eHost.grid(row=2, column=1)
+eHost.insert(0, "Hostname")
+
+# Password
+ePassword = Entry(fEntry, bd=1)
+ePassword.grid(row=3, column=1)
+ePassword.insert(0, "Password")
+
+# Port
+ePort = Entry(fEntry, bd=1)
+ePort.grid(row=4, column=1)
+ePort.insert(0, "Port")
 
 # Load button
-button(width=150, height=50, row=6, column=1, text="Load", command=load, image=iLoad)
+button(width=150, height=50, row=7, column=1, text="Load", command=load, image=iLoad)
 
 # Save button
-button(width=150, height=50, row=7, column=1, text="Save", command=save, image=iSave)
+button(width=150, height=50, row=8, column=1, text="Save", command=save, image=iSave)
 
 # Delete button
-button(width=150, height=50, row=8, column=1, text="Delete", command=delete, image=iDelete)
+button(width=150, height=50, row=9, column=1, text="Delete", command=delete, image=iDelete)
 
 ### Tabs ###
 # Tab frame #
-fTabs = Frame(root, width=650, height=600, bg="blue")
+fTabs = Frame(root, width=750, height=650, bg="blue")
 fTabs.grid_propagate(False)
 fTabs.grid(row=1, column=2)
 
@@ -184,7 +269,7 @@ terminal_input = Entry(fTerminal_input)
 terminal_input.grid(row=1, column=1, sticky="nsew")
 Grid.columnconfigure(fTerminal_input, 1, weight=1)
 Grid.rowconfigure(fTerminal_input, 1, weight=1)
-terminal_input.bind('<Return>', input)
+terminal_input.bind('<Return>', output)
 
 
 # FTP tab #
