@@ -4,6 +4,7 @@ from tkinter import ttk
 from tkinter.font import *
 from tkinter.scrolledtext import *
 import platform
+import os
 
 
 # Variables
@@ -34,23 +35,23 @@ def button(width, height, row, column, text, command, image=None):
 
 # Connect ssh
 def connect_ssh():
-    global ssh_connection
     global connected_ssh
+
+    terminal_output.configure(state="normal")
 
     username = eUsername.get()
     host = eHost.get()
-    password = ePassword.get()
     port = ePort.get()
 
     if connected_ssh == False:
         try:
             connected_ssh = True
-            ssh_connection = SSHClient()
-            ssh_connection.load_system_host_keys()
-            ssh_connection.set_missing_host_key_policy(AutoAddPolicy())
-            ssh_connection.connect(host, port=port, username=username, password=None)
+            os.system(f"osascript -e 'tell app \"Terminal\"\n do script \"ssh {username}@{host} -p {port}\"\n end tell'")
+            terminal_output.insert(INSERT, f"Connected to {username}@{host} in a new window\n")
         except:
             print("Entries are invalid")
+        terminal_output.see(END)
+        terminal_output.configure(state="disabled")
 
 
 # Output
@@ -59,38 +60,12 @@ def output(event):
     command = terminal_input.get()
     terminal_output.configure(state="normal")
     if connected_ssh:
-        stdin, stdout, stderr = ssh_connection.exec_command(command)
-        output = stdout.readlines()
         terminal_output.insert(INSERT, f"root@ubuntu: {command}\n")
-        output = " ".join(output)
-        output = output.rstrip("\r\n")
-        print(output)
-        terminal_output.insert(INSERT, f"root@ubuntu: {output}\n")
     else:
         terminal_output.insert(INSERT, "No Connection\n")
     terminal_output.see(END)
     terminal_output.configure(state="disabled")
     terminal_input.delete(0, END)
-
-
-# Autocomplete
-def autocomplete(event):
-    global terminal_input, connected_ssh, ssh_connection
-    command = terminal_input.get()
-    terminal_output.configure(state="normal")
-
-    if connected_ssh:
-        stdin, stdout, stderr = ssh_connection.exec_command(f"clear")
-        stdin.send("cd Do")
-        output = stdout.readlines()
-        print(output)
-        terminal_output.insert(INSERT, f"root@ubuntu: {output}\n")
-
-    terminal_output.see(END)
-    terminal_output.configure(state="disabled")
-    terminal_input.delete(0, END)
-    print("Working")
-    return("break")
 
 
 # Connect ftp
@@ -303,7 +278,6 @@ terminal_input.grid(row=1, column=1, sticky="nsew")
 Grid.columnconfigure(fTerminal_input, 1, weight=1)
 Grid.rowconfigure(fTerminal_input, 1, weight=1)
 terminal_input.bind('<Return>', output)
-terminal_input.bind('<Tab>', autocomplete)
 
 
 # FTP tab #
