@@ -1,119 +1,135 @@
-from paramiko import *
 from tkinter import *
 from tkinter import ttk
 from tkinter.font import *
 from tkinter.scrolledtext import *
 import platform
 import os
-
+import mysql.connector
 
 # Variables
 width = 900
-height = 650
+height = 670
 
 name = ""
 username = ""
 hostname = ""
-port = "22"
+port = ""
 password = ""
-connected_ssh = False
-
+platform = platform.system()
+RGB_variable = [235, 52, 52]
 
 
 ### Functions ###
 # Button
 def button(width, height, row, column, text, command, image=None):
-    frame = Frame(fToolbar, width=width, height=height)
-    frame.grid_propagate(False)
-    frame.grid(row=row, column=column)
+    button_frame = Frame(toolbar_frame, width=width, height=height)
+    button_frame.grid_propagate(False)
+    button_frame.grid(row=row, column=column)
 
-    button = Button(frame, text=text, activeforeground="grey", command=command, image=image, compound="left", anchor=W)
+    button = Button(button_frame, text=text, activeforeground="grey", command=command, image=image, compound="left", anchor=W)
     button.grid(row=1, column=1, sticky="nsew")
-    Grid.columnconfigure(frame, 1, weight=1)
-    Grid.rowconfigure(frame, 1, weight=1)
+    Grid.columnconfigure(button_frame, 1, weight=1)
+    Grid.rowconfigure(button_frame, 1, weight=1)
+
+
+# Alert
+def alert(text):
+    alert_output.configure(state="normal")
+    alert_output.insert(INSERT, text)
+    alert_output.insert(INSERT, "\n")
+    alert_output.see(END)
+    alert_output.configure(state="disabled")
 
 
 # Connect ssh
 def connect_ssh():
-    global connected_ssh
+    alert_output.configure(state="normal")
 
-    terminal_output.configure(state="normal")
+    name = name_entry.get()
+    username = username_entry.get()
+    host = host_entry.get()
+    port = port_entry.get()
 
-    username = eUsername.get()
-    host = eHost.get()
-    port = ePort.get()
+    # Set default port
+    if type(port) != int:
+        port = 22
+    if port == "":
+        port = 22
 
-    if connected_ssh == False:
-        try:
-            connected_ssh = True
+    try:
+        # Mac
+        if platform == "Darwin":
             os.system(f"osascript -e 'tell app \"Terminal\"\n do script \"ssh {username}@{host} -p {port}\"\n end tell'")
-            terminal_output.insert(INSERT, f"Connected to {username}@{host} in a new window\n")
-        except:
-            print("Entries are invalid")
-        terminal_output.see(END)
-        terminal_output.configure(state="disabled")
-
-
-# Output
-def output(event):
-    global terminal_input, connected_ssh, ssh_connection
-    command = terminal_input.get()
-    terminal_output.configure(state="normal")
-    if connected_ssh:
-        terminal_output.insert(INSERT, f"root@ubuntu: {command}\n")
-    else:
-        terminal_output.insert(INSERT, "No Connection\n")
-    terminal_output.see(END)
-    terminal_output.configure(state="disabled")
-    terminal_input.delete(0, END)
+            alert(f"[Remotre] Connecting to '{name}' at '{username}@{host}:{port}' via ssh in a new terminal. Window may start minimized...")
+        # Windows
+        elif platform == "Windows":
+            os.system(f"cmd /c start ssh {username}@{host} -p {port}")
+            alert(f"[Remotre] Connecting to '{name}' at '{username}@{host}:{port}' via ssh in a new terminal...")
+        # Linux
+        elif platform == "Linux":
+            os.system(f"gnome-terminal -e 'bash -c \"\"ssh {username}@{host} -p {port}\";bash\"'")
+            alert(f"[Remotre] Connecting to '{name}' at '{username}@{host}:{port}' via ssh in a new terminal...")
+        else:
+            alert(f"[Remotre] Sorry, your OS is not yet supported")
+    except:
+        print("Entries are invalid")
+    alert_output.see(END)
+    alert_output.configure(state="disabled")
 
 
 # Connect ftp
 def connect_ftp():
-    sNotification.set("Connected FTP")
+    name = name_entry.get()
+    alert(f"[Remotre] Connecting to '{name}' via FTP... Check the FTP tab.")
 
 
 # Load
 def load():
-    sNotification.set("Loaded")
+    name = name_entry.get()
+    alert(f"[Remotre] Loaded '{name}'")
 
 
 # Save
 def save():
-    sNotification.set("Saved")
+    name = name_entry.get()
+    alert(f"[Remotre] Saved '{name}'")
 
 
 # Delete
 def delete():
-    global connected_ssh
-    sNotification.set("Deleted")
-    connected_ssh = False
+    name = name_entry.get()
+    alert(f"[Remotre] Deleted '{name}'")
+
+    name_entry.delete(0, END)
+    username_entry.delete(0, END)
+    host_entry.delete(0, END)
+    port_entry.delete(0, END)
 
 
-# RGB
+# RGB #
 def RGB():
-    global vRGB
+    global RGB_variable
     global RGB_stage
-    list_RGB = list(vRGB)
+    list_RGB = list(RGB_variable)
 
     # Stage switching #
     # Stage 1
-    if vRGB == (235, 52, 52):
+    if RGB_variable == (235, 52, 52):
         RGB_stage = 1
     # Stage 2
-    if vRGB == (235, 235, 52):
+    if RGB_variable == (235, 235, 52):
         RGB_stage = 2
     # Stage 3
-    if vRGB == (52, 235, 52):
+    if RGB_variable == (52, 235, 52):
         RGB_stage = 3
     # Stage 4
-    if vRGB == (52, 235, 235):
+    if RGB_variable == (52, 235, 235):
         RGB_stage = 4
     # Stage 5
-    if vRGB == (52, 52, 235):
+    if RGB_variable == (52, 52, 235):
         RGB_stage = 5
     # Stage 6
-    if vRGB == (235, 52, 235):
+    if RGB_variable == (235, 52, 235):
         RGB_stage = 6
 
     # Stage 1
@@ -135,8 +151,8 @@ def RGB():
     if RGB_stage == 6:
         list_RGB[2] -= 1
 
-    vRGB = tuple(list_RGB)
-    lRGB.config(fg="#%02x%02x%02x" % vRGB)
+    RGB_variable = tuple(list_RGB)
+    RGB_label.configure(fg="#%02x%02x%02x" % RGB_variable)
     root.after(5, RGB)
 
 
@@ -144,145 +160,147 @@ def RGB():
 # Window
 root = Tk()
 root.title("Remotre")
-root.geometry(f"{width}x{height}+500+250")
+x_center = (root.winfo_screenwidth()/2) - (width/2)
+y_center = (root.winfo_screenheight()/2) - (height/2)
+root.geometry(f"{width}x{height}+{int(x_center)}+{int(y_center)}")
 root.resizable(width=False, height=False)
 
 # Images
-iSSH = PhotoImage(file = "./icons/ssh.png")
-iFTP = PhotoImage(file = "./icons/ftp.png")
-iLoad = PhotoImage(file = "./icons/load.png")
-iSave = PhotoImage(file = "./icons/save.png")
-iDelete = PhotoImage(file = "./icons/delete.png")
+SSH_image = PhotoImage(file = "./icons/ssh.png")
+FTP_image = PhotoImage(file = "./icons/ftp.png")
+load_image = PhotoImage(file = "./icons/load.png")
+save_image = PhotoImage(file = "./icons/save.png")
+delete_image = PhotoImage(file = "./icons/delete.png")
 
 ### Toolbar widgets ###
 # Toolbar frame #
-fToolbar = Frame(root, width=150, height=650, bg="grey")
-fToolbar.grid_propagate(False)
-fToolbar.grid(row=1, column=1)
+toolbar_frame = Frame(root, width=160, height=650)
+toolbar_frame.grid_propagate(False)
+toolbar_frame.grid(row=1, column=1)
 
 # RGB watermark
 RGB_stage = 1
-vRGB = (235, 52, 52)
-sRGB = StringVar()
-fRGB = Frame(fToolbar, width=150, height=50)
-fRGB.grid_propagate(False)
-fRGB.grid(row=1, column=1, sticky="nsew")
-lRGB = Label(fRGB, textvariable=sRGB, fg="#%02x%02x%02x" % vRGB)
-lRGB["font"] = Font(size=36)
-sRGB.set("Remotre")
-lRGB.grid(row=1, column=1, sticky="nsew")
+RGB_variable = (235, 52, 52)
+RGB_string = StringVar()
+RGB_frame = Frame(toolbar_frame, width=160, height=50)
+RGB_frame.grid_propagate(False)
+RGB_frame.grid(row=1, column=1, sticky="nsew")
+RGB_label = Label(RGB_frame, textvariable=RGB_string, fg="#%02x%02x%02x" % RGB_variable)
+RGB_label["font"] = Font(size=38)
+RGB_string.set("Remotre")
+RGB_label.grid(row=1, column=1, sticky="nsew")
 RGB()
 
 # Connect ssh button
-button(width=150, height=50, row=2, column=1, text="Connect SSH", command=connect_ssh, image=iSSH)
+button(width=160, height=50, row=2, column=1, text="Connect SSH", command=connect_ssh, image=SSH_image)
 
 # Connect ftp button
-button(width=150, height=50, row=3, column=1, text="Connect FTP", command=connect_ftp, image=iFTP)
+button(width=160, height=50, row=3, column=1, text="Connect FTP", command=connect_ftp, image=FTP_image)
 
-# Selection frame
-fSelection = Frame(fToolbar, width=150, height=225)
-fSelection.grid_propagate(False)
-fSelection.grid(row=4, column=1)
+# Connections label frame
+connections_label_string = StringVar()
+connections_label_frame = Frame(toolbar_frame, width=160, height=25)
+connections_label_frame.grid_propagate(False)
+connections_label_frame.grid(row=4, column=1)
+connections_label = Label(connections_label_frame, textvariable=connections_label_string)
+connections_label["font"] = Font(size=16)
+connections_label_string.set("Saved Connections")
+connections_label.grid(row=1, column=1)
 
-flSelection = Frame(fSelection, width=134, height=225)
-flSelection.grid_propagate(False)
-flSelection.grid(row=1, column=1)
-lSelection = Listbox(flSelection)
-lSelection.grid_propagate(False)
-lSelection.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(flSelection, 1, weight=1)
-Grid.rowconfigure(flSelection, 1, weight=1)
+# Connections frame #
+connections_frame = Frame(toolbar_frame, width=160, height=225)
+connections_frame.grid_propagate(False)
+connections_frame.grid(row=5, column=1)
 
-sSelection = Scrollbar(fSelection, orient="vertical")
-sSelection.config(command=lSelection.yview)
-sSelection.grid(row=1, column=2, sticky="nsew")
-lSelection.config(yscrollcommand=sSelection.set)
-Grid.columnconfigure(fSelection, 2, weight=1)
+# Connections list frame
+connections_listbox_frame = Frame(connections_frame, width=144, height=225)
+connections_listbox_frame.grid_propagate(False)
+connections_listbox_frame.grid(row=1, column=1)
+
+# Listbox
+connections_listbox = Listbox(connections_listbox_frame)
+connections_listbox.grid(row=1, column=1, sticky="nsew")
+Grid.columnconfigure(connections_listbox_frame, 1, weight=1)
+Grid.rowconfigure(connections_listbox_frame, 1, weight=1)
+
+# Listbox scrollbar
+connections_listbox_scrollbar = Scrollbar(connections_frame, orient="vertical")
+connections_listbox_scrollbar.configure(command=connections_listbox.yview)
+connections_listbox_scrollbar.grid(row=1, column=2, sticky="nsew")
+connections_listbox.configure(yscrollcommand=connections_listbox_scrollbar.set)
 
 for x in range(100):
-    lSelection.insert(END, f"Server {str(x+1)}")
-
-# Notification text
-sNotification = StringVar()
-fNotification = Frame(fToolbar, width=150, height=25)
-fNotification.grid_propagate(False)
-fNotification.grid(row=5, column=1)
-tNotification = Label(fNotification, textvariable=sNotification, fg="red")
-tNotification.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(fNotification, 1, weight=1)
-Grid.rowconfigure(fNotification, 1, weight=1)
+    connections_listbox.insert(END, f"Server {str(x+1)}")
 
 # Entry frame #
-fEntry = Frame(fToolbar, width=150, height=100, bg="grey")
-fEntry.grid_propagate(False)
-fEntry.grid(row=6, column=1)
+entry_frame = Frame(toolbar_frame, width=160, height=100)
+entry_frame.grid_propagate(False)
+entry_frame.grid(row=6, column=1)
+Grid.columnconfigure(entry_frame, 1, weight=1)
+
+# Name
+name_entry = Entry(entry_frame, bd=1)
+name_entry.grid(row=1, column=1)
+name_entry.insert(0, "Public Pi")
 
 # Username
-eUsername = Entry(fEntry, bd=1)
-eUsername.grid(row=1, column=1)
-eUsername.insert(0, "Username")
+username_entry = Entry(entry_frame, bd=1)
+username_entry.grid(row=2, column=1)
+username_entry.insert(0, "root")
 
 # Host
-eHost = Entry(fEntry, bd=1)
-eHost.grid(row=2, column=1)
-eHost.insert(0, "Hostname")
-
-# Password
-ePassword = Entry(fEntry, bd=1)
-ePassword.grid(row=3, column=1)
-ePassword.insert(0, "Password")
+host_entry = Entry(entry_frame, bd=1)
+host_entry.grid(row=3, column=1)
+host_entry.insert(0, "sunwooserver.ddns.net")
 
 # Port
-ePort = Entry(fEntry, bd=1)
-ePort.grid(row=4, column=1)
-ePort.insert(0, "Port")
+port_entry = Entry(entry_frame, bd=1)
+port_entry.grid(row=5, column=1)
+port_entry.insert(0, "22")
 
 # Load button
-button(width=150, height=50, row=7, column=1, text="Load", command=load, image=iLoad)
+button(width=160, height=50, row=7, column=1, text="Load", command=load, image=load_image)
 
 # Save button
-button(width=150, height=50, row=8, column=1, text="Save", command=save, image=iSave)
+button(width=160, height=50, row=8, column=1, text="Save", command=save, image=save_image)
 
 # Delete button
-button(width=150, height=50, row=9, column=1, text="Delete", command=delete, image=iDelete)
+button(width=160, height=50, row=9, column=1, text="Delete", command=delete, image=delete_image)
 
 ### Tabs ###
 # Tab frame #
-fTabs = Frame(root, width=750, height=650, bg="blue")
-fTabs.grid_propagate(False)
-fTabs.grid(row=1, column=2)
+tabs_frame = Frame(root, width=740, height=650)
+tabs_frame.grid_propagate(False)
+tabs_frame.grid(row=1, column=2)
 
 # Tab list #
-tabs = ttk.Notebook(fTabs)
+tabs = ttk.Notebook(tabs_frame)
 tabs.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(fTabs, 1, weight=1)
-Grid.rowconfigure(fTabs, 1, weight=1)
+Grid.columnconfigure(tabs_frame, 1, weight=1)
+Grid.rowconfigure(tabs_frame, 1, weight=1)
 
-# SSH tab #
-tSSH = Frame(tabs)
-tabs.add(tSSH, text="SSH")
+# Alerts tab #
+alerts_frame = Frame(tabs)
+tabs.add(alerts_frame, text="Alerts")
 
-# Terminal output
-terminal_output = ScrolledText(tSSH)
-terminal_output.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(tSSH, 1, weight=1)
-Grid.rowconfigure(tSSH, 1, weight=1)
-terminal_output.configure(state="disabled")
-
-# Terminal input
-fTerminal_input = Frame(tSSH, bg="black")
-fTerminal_input.grid(row=2, column=1, sticky="nsew")
-
-terminal_input = Entry(fTerminal_input)
-terminal_input.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(fTerminal_input, 1, weight=1)
-Grid.rowconfigure(fTerminal_input, 1, weight=1)
-terminal_input.bind('<Return>', output)
-
+# Alerts output
+alert_output = ScrolledText(alerts_frame)
+alert_output.grid(row=1, column=1, sticky="nsew")
+Grid.columnconfigure(alerts_frame, 1, weight=1)
+Grid.rowconfigure(alerts_frame, 1, weight=1)
+alert_output.configure(state="disabled")
 
 # FTP tab #
-tFTP = Frame(tabs)
-tabs.add(tFTP, text="FTP")
+FTP_frame = Frame(tabs)
+tabs.add(FTP_frame, text="FTP")
+
+### Account status ###
+account_status_frame = Frame(root, width=900)
+account_status_frame.grid(row=2, column=1, columnspan=2)
+account_status_label_string = StringVar()
+account_status_label = Label(account_status_frame, textvariable=account_status_label_string)
+account_status_label_string.set("Trial: 30 days remaining")
+account_status_label.grid(row=1, column=1)
 
 
 root.mainloop()
