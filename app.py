@@ -23,7 +23,8 @@ login.geometry(f"{width}x{height}+{int(x_center)}+{int(y_center)}")
 login.resizable(width=False, height=False)
 
 
-### Loop function ###
+### Functions ###
+# Loop
 def loop():
     # Show or hide password
     if show_password_checkbox_variable.get() == 1:
@@ -33,11 +34,16 @@ def loop():
 
     login.after(5, loop)
 
-
+# Connect to database and login
 def login_check():
-    global logged
-    if (username_entry.get() == "admin") and (password_entry.get() == "password"):
+    global logged, user, days, free_alert, basic_alert, premium_alert
+    if password_entry.get():
         logged = True
+        user = username_entry.get()
+        days = 30
+        free_alert = f"[Remotre] Welcome {user}. You are currently using the free plan, upgrade to a paid plan to save connections to the cloud"
+        basic_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your basic plan, upgrade to the premium plan to use the FTP tab"
+        premium_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your premium plan"
         login.destroy()
     else:
         login_error_string.set("Incorrect username/password")
@@ -388,7 +394,9 @@ account_status_frame = Frame(root, width=900)
 account_status_frame.grid(row=2, column=1, columnspan=2)
 account_status_label_string = StringVar()
 account_status_label = Label(account_status_frame, textvariable=account_status_label_string)
-account_status_label_string.set("Trial: 30 days remaining")
+account_status_label_string.set(f"Trial: {days} days remaining")
 account_status_label.grid(row=1, column=1)
+
+alert(free_alert)
 
 root.mainloop()
