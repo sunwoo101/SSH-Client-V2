@@ -2,26 +2,41 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.font import *
 from tkinter.scrolledtext import *
+from tkinter.messagebox import *
 import platform
 import os
-import pysftp
-import mysql.connector
+import pickle
 
 
 ### Login Screen ###
 # Variables
-width = 600
-height = 400
 logged = False
 
 # Window
 login = Tk()
 login.title("Remotre - Login")
-x_center = (login.winfo_screenwidth()/2) - (width/2)
-y_center = (login.winfo_screenheight()/2) - (height/2)
-login.geometry(f"{width}x{height}+{int(x_center)}+{int(y_center)}")
+x_center = (login.winfo_screenwidth()/2) - 300
+y_center = (login.winfo_screenheight()/2) - 200
+login.geometry("+%d+%d" % (x_center, y_center))
 login.resizable(width=False, height=False)
 
+# Craete details file if not already existing
+if os.path.isfile("./details.JSON") == False:
+    details_file = open("details.JSON", "wb")
+    details = []
+    pickle.dump(details, details_file)
+    details_file.close()
+
+# Load list into variable
+details_file = open("details.JSON", "rb")
+details = []
+details = pickle.load(details_file)
+details_file.close()
+
+user = details[0]
+passwd = details[1]
+plan = details[2]
+days = details[3]
 
 ### Functions ###
 # Loop
@@ -34,62 +49,88 @@ def loop():
 
     login.after(5, loop)
 
+
 # Connect to database and login
-def login_check():
+def login_check(event=None):
     global logged, user, days, free_alert, basic_alert, premium_alert
-    if password_entry.get():
+    if password_entry.get() == "Password":
+        # Save details
         logged = True
         user = username_entry.get()
-        days = 30
+        passwd = password_entry.get()
+        if type(days) == "int":
+            days -= 1
+        details = [user, passwd, plan, days]
+        details_file = open("details.JSON", "wb")
+        pickle.dump(details, details_file)
+        details_file.close()
+
+        # Alert
         free_alert = f"[Remotre] Welcome {user}. You are currently using the free plan, upgrade to a paid plan to save connections to the cloud"
         basic_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your basic plan, upgrade to the premium plan to use the FTP tab"
         premium_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your premium plan"
         login.destroy()
+    elif days < 1:
+        login_error_string.set("Your plan has expired")
     else:
         login_error_string.set("Incorrect username/password")
 
 
 # Frame
-login_frame = Frame(login, width=190, height=170, relief="ridge", bd=10)
-login_frame.grid(row=1, column=1, padx=195, pady=115)
+login_frame = Frame(login, relief="ridge", bd=10)
+login_frame.grid(row=1, column=1, padx=150, pady=100)
 
 # Label
 login_string = StringVar()
 login_label = Label(login_frame, textvariable=login_string)
 login_label["font"] = Font(size=38)
 login_string.set("Login")
-login_label.grid(row=1, column=1, sticky="nsew")
+login_label.grid(row=1, column=1, columnspan=2, sticky="nsew")
 
 # Username
+username_string = StringVar()
+username_label = Label(login_frame, textvariable=username_string)
+username_label["font"] = Font(size=12)
+username_string.set("Username:")
+username_label.grid(row=2, column=1, sticky="nsew")
+
 username_entry = Entry(login_frame, bd=1)
-username_entry.grid(row=2, column=1, sticky="nsew")
-username_entry.insert(0, "Username")
+username_entry.grid(row=2, column=2, sticky="nsew")
+username_entry.insert(0, user)
 
 # Password
+password_string = StringVar()
+password_label = Label(login_frame, textvariable=password_string)
+password_label["font"] = Font(size=12)
+password_string.set("Password:")
+password_label.grid(row=3, column=1, sticky="nsew")
+
 password_entry = Entry(login_frame, bd=1)
-password_entry.grid(row=3, column=1, sticky="nsew")
-password_entry.insert(0, "Password")
+password_entry.grid(row=3, column=2, sticky="nsew")
 password_entry.configure(show="*")
+password_entry.insert(0, passwd)
 
 show_password_checkbox_variable = IntVar()
 show_password_checkbox = Checkbutton(login_frame, text="Show Password", variable=show_password_checkbox_variable)
-show_password_checkbox.grid(row=4, column=1)
+show_password_checkbox.grid(row=4, column=1, columnspan=2)
 
 # Button
 login_button_frame = Frame(login_frame, width=50, height=20)
 login_button_frame.grid_propagate(False)
 Grid.columnconfigure(login_button_frame, 1, weight=1)
 Grid.rowconfigure(login_button_frame, 1, weight=1)
-login_button_frame.grid(row=5, column=1)
+login_button_frame.grid(row=5, column=1, columnspan=2)
 
 login_button = Button(login_button_frame, text="Login", command=login_check)
 login_button.grid(row=1, column=1, sticky="nsew")
+
+login.bind("<Return>", login_check)
 
 # Login error
 login_error_string = StringVar()
 login_error_label = Label(login_frame, fg="red", textvariable=login_error_string)
 login_error_label["font"] = Font(size=12)
-login_error_label.grid(row=6, column=1, sticky="nsew")
+login_error_label.grid(row=6, column=1, columnspan=2, sticky="nsew")
 
 loop()
 
@@ -108,10 +149,22 @@ height = 670
 name = ""
 username = ""
 hostname = ""
-port = ""
-password = ""
+port = "22"
 platform = platform.system()
 RGB_variable = [235, 52, 52]
+
+# Craete logins file if not already existing
+if os.path.isfile("./logins.JSON") == False:
+    logins_file = open("logins.JSON", "wb")
+    logins = []
+    pickle.dump(logins, logins_file)
+    logins_file.close()
+
+# Load list into variable
+logins_file = open("logins.JSON", "rb")
+logins = []
+logins = pickle.load(logins_file)
+logins_file.close()
 
 
 ### Functions ###
@@ -142,7 +195,7 @@ def connect_ssh():
 
     name = name_entry.get()
     username = username_entry.get()
-    host = host_entry.get()
+    hostname = hostname_entry.get()
     port = port_entry.get()
 
     # Set default port
@@ -154,16 +207,19 @@ def connect_ssh():
     try:
         # Mac
         if platform == "Darwin":
-            os.system(f"osascript -e 'tell app \"Terminal\"\n do script \"ssh {username}@{host} -p {port}\"\n end tell'")
-            alert(f"[Remotre] Connecting to '{name}' at '{username}@{host}:{port}' via ssh in a new terminal. Window may start minimized...")
+            os.system(f"osascript -e 'tell app \"Terminal\"\n do script \"ssh {username}@{hostname} -p {port}\"\n end tell'")
+            alert(f"[Remotre] Connecting to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal. Window may start minimized...")
         # Windows
         elif platform == "Windows":
-            os.system(f"cmd /c start ssh {username}@{host} -p {port}")
-            alert(f"[Remotre] Connecting to '{name}' at '{username}@{host}:{port}' via ssh in a new terminal...")
+            os.system(f"cmd /c start ssh {username}@{hostname} -p {port}")
+            alert(f"[Remotre] Connecting to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
         # Linux
         elif platform == "Linux":
-            os.system(f"gnome-terminal -e 'bash -c \"\"ssh {username}@{host} -p {port}\";bash\"'")
-            alert(f"[Remotre] Connecting to '{name}' at '{username}@{host}:{port}' via ssh in a new terminal...")
+            """ this needs to be fixed
+            os.system(f"gnome-terminal -e 'bash -c \"\"ssh {username}@{hostname} -p {port}\";bash\"'")
+            """
+
+            alert(f"[Remotre] Connecting to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
         else:
             alert(f"[Remotre] Sorry, your OS is not yet supported")
     except:
@@ -175,30 +231,124 @@ def connect_ssh():
 # Connect ftp
 def connect_ftp():
     name = name_entry.get()
-    alert(f"[Remotre] Connecting to '{name}' via FTP... Check the FTP tab.")
+    if plan == "free":
+        alert("[Remotre] Please buy our premium plan to use this feature")
+    if plan == "basic":
+        alert("[Remotre] Please buy our premium plan to use this feature")
+    if plan == "premium":
+        alert(f"[Remotre] Connecting to '{name}' via FTP... Check the FTP tab.")
 
 
 # Load
 def load():
-    name = name_entry.get()
-    alert(f"[Remotre] Loaded '{name}'")
+    global name, username, hostname, port, logins
+
+    # Load list into variable
+    logins_file = open("logins.JSON", "rb")
+    logins = []
+    logins = pickle.load(logins_file)
+    logins_file.close()
+
+    selected = connections_listbox.get(ACTIVE)
+
+    # Search for the selected login in the list
+    for i in logins:
+        if str(selected) == str(i[0]):
+            name = i[0]
+            username = i[1]
+            hostname = i[2]
+            port = i[3]
+            
+            # Load
+            name_entry.delete(0, END)
+            name_entry.insert(0, name)
+
+            username_entry.delete(0, END)
+            username_entry.insert(0, username)
+
+            hostname_entry.delete(0, END)
+            hostname_entry.insert(0, hostname)
+
+            port_entry.delete(0, END)
+            port_entry.insert(0, port)
 
 
 # Save
 def save():
+    global name, username, hostname, port, logins
+
+    # Grab entries
     name = name_entry.get()
-    alert(f"[Remotre] Saved '{name}'")
+    username = username_entry.get()
+    hostname = hostname_entry.get()
+    port = port_entry.get()
+
+    # Load list into variable
+    logins_file = open("logins.JSON", "rb")
+    logins = []
+    logins = pickle.load(logins_file)
+    logins_file.close()
+
+    names = []
+    for i in logins:
+        names.append(i[0])
+    
+    # Check if login name exists
+    if name in names:
+        showerror(title="Error", message="This login name already exists")
+    # Check if entries are empty
+    elif name != "" and username != "" and hostname != "" and port != "":
+        # Save to file
+        logins.append([name, username, hostname, port])
+        logins_file = open("logins.JSON", "wb")
+        pickle.dump(logins, logins_file)
+        logins_file.close()
+
+        refresh()
+    # Error if entries are empty
+    else:
+        showerror(title="Error",message="One or more inputs are empty")
+
+# Refresh
+def refresh():
+    global name, username, hostname, port, logins
+
+    connections_listbox.delete(0, END)
+
+    # Load list into variable
+    logins_file = open("logins.JSON", "rb")
+    logins = []
+    logins = pickle.load(logins_file)
+    logins_file.close()
+
+    # Load list into combobox
+    for i in logins:
+        connections_listbox.insert(END, i[0])
 
 
-# Delete
+# Delete function
 def delete():
-    name = name_entry.get()
-    alert(f"[Remotre] Deleted '{name}'")
+    global name, username, hostname, port, logins
 
-    name_entry.delete(0, END)
-    username_entry.delete(0, END)
-    host_entry.delete(0, END)
-    port_entry.delete(0, END)
+    selected = connections_listbox.get(ACTIVE)
+
+    # Load list into variable
+    logins_file = open("logins.JSON", "rb")
+    logins = []
+    logins = pickle.load(logins_file)
+    logins_file.close()
+
+    # Delete
+    for i in logins:
+        if str(selected) == str(i[0]):
+            logins.remove(i)
+
+    # Save to file
+    logins_file = open("logins.JSON", "wb")
+    pickle.dump(logins, logins_file)
+    logins_file.close()
+
+    refresh()
 
 
 # RGB #
@@ -324,9 +474,6 @@ connections_listbox_scrollbar.configure(command=connections_listbox.yview)
 connections_listbox_scrollbar.grid(row=1, column=2, sticky="nsew")
 connections_listbox.configure(yscrollcommand=connections_listbox_scrollbar.set)
 
-for x in range(100):
-    connections_listbox.insert(END, f"Server {str(x+1)}")
-
 # Entry frame #
 entry_frame = Frame(toolbar_frame, width=160, height=105)
 entry_frame.grid_propagate(False)
@@ -336,7 +483,7 @@ Grid.columnconfigure(entry_frame, 1, weight=1)
 # Name
 name_entry = Entry(entry_frame, bd=1)
 name_entry.grid(row=1, column=1)
-name_entry.insert(0, "Public Pi")
+name_entry.insert(0, "Connection")
 
 # Username
 username_entry = Entry(entry_frame, bd=1)
@@ -344,14 +491,14 @@ username_entry.grid(row=2, column=1)
 username_entry.insert(0, "root")
 
 # Host
-host_entry = Entry(entry_frame, bd=1)
-host_entry.grid(row=3, column=1)
-host_entry.insert(0, "sunwooserver.ddns.net")
+hostname_entry = Entry(entry_frame, bd=1)
+hostname_entry.grid(row=3, column=1)
+hostname_entry.insert(0, "example.com")
 
 # Port
 port_entry = Entry(entry_frame, bd=1)
 port_entry.grid(row=5, column=1)
-port_entry.insert(0, "22")
+port_entry.insert(0, 22)
 
 # Load button
 button(toolbar_frame, width=160, height=50, row=7, column=1, text="Load", command=load, image=load_image)
@@ -394,9 +541,17 @@ account_status_frame = Frame(root, width=900)
 account_status_frame.grid(row=2, column=1, columnspan=2)
 account_status_label_string = StringVar()
 account_status_label = Label(account_status_frame, textvariable=account_status_label_string)
-account_status_label_string.set(f"Trial: {days} days remaining")
+account_status_label_string.set(f"{plan.capitalize()}: {days} days remaining")
 account_status_label.grid(row=1, column=1)
 
-alert(free_alert)
 
+# Account alert
+if plan == "free":
+    alert(free_alert)
+elif plan == "basic":
+    alert(basic_alert)
+elif plan == "premium":
+    alert(premium_alert)
+
+refresh()
 root.mainloop()
