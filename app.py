@@ -53,12 +53,12 @@ def loop():
 # Connect to database and login
 def login_check(event=None):
     global logged, user, days, free_alert, basic_alert, premium_alert
-    if password_entry.get() == "Password":
+    if (password_entry.get() == "Password") and (isinstance(days, str) or days > 0):
         # Save details
         logged = True
         user = username_entry.get()
         passwd = password_entry.get()
-        if type(days) == "int":
+        if isinstance(days, int):
             days -= 1
         details = [user, passwd, plan, days]
         details_file = open("details.JSON", "wb")
@@ -232,11 +232,14 @@ def connect_ssh():
 def connect_ftp():
     name = name_entry.get()
     if plan == "free":
-        alert("[Remotre] Please buy our premium plan to use this feature")
-    if plan == "basic":
-        alert("[Remotre] Please buy our premium plan to use this feature")
-    if plan == "premium":
-        alert(f"[Remotre] Connecting to '{name}' via FTP... Check the FTP tab.")
+        #alert("[Remotre] Please buy our premium plan to use this feature")
+        alert("[Remotre] Sorry this feature is currently not available")
+    elif plan == "basic":
+        #alert("[Remotre] Please buy our premium plan to use this feature")
+        alert("[Remotre] Sorry this feature is currently not available")
+    elif plan == "premium":
+        #alert(f"[Remotre] Connecting to '{name}' via FTP... Check the FTP tab.")
+        alert("[Remotre] Sorry this feature is currently not available")
 
 
 # Load
@@ -536,6 +539,12 @@ alert_output.configure(state="disabled")
 FTP_frame = Frame(tabs)
 tabs.add(FTP_frame, text="FTP")
 
+FTP_string = StringVar()
+FTP_label = Label(FTP_frame, textvariable=FTP_string)
+FTP_label["font"] = Font(size=32)
+FTP_string.set("Sorry this feature is currently not available")
+FTP_label.grid(row=1, column=1, sticky="nsew")
+
 ### Account status ###
 account_status_frame = Frame(root, width=900)
 account_status_frame.grid(row=2, column=1, columnspan=2)
@@ -543,7 +552,6 @@ account_status_label_string = StringVar()
 account_status_label = Label(account_status_frame, textvariable=account_status_label_string)
 account_status_label_string.set(f"{plan.capitalize()}: {days} days remaining")
 account_status_label.grid(row=1, column=1)
-
 
 # Account alert
 if plan == "free":
