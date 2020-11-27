@@ -1,11 +1,22 @@
+# GUI
 from tkinter import *
 from tkinter import ttk
 from tkinter.font import *
 from tkinter.scrolledtext import *
 from tkinter.messagebox import *
+
+# SFTP
+import pysftp as sftp
+
+# OS detection and commands
 import platform
 import os
+
+# Database
 import pickle
+
+# Others
+from time import sleep
 
 
 ### Login Screen ###
@@ -33,6 +44,7 @@ details = []
 details = pickle.load(details_file)
 details_file.close()
 
+# Store variables
 user = details[0]
 passwd = details[1]
 plan = details[2]
@@ -54,12 +66,12 @@ def loop():
 def login_check(event=None):
     global logged, user, days, free_alert, basic_alert, premium_alert
     if (password_entry.get() == "Password") and (isinstance(days, str) or days > 0):
-        # Save details
         logged = True
         user = username_entry.get()
         passwd = password_entry.get()
         if isinstance(days, int):
             days -= 1
+        # Save details
         details = [user, passwd, plan, days]
         details_file = open("details.JSON", "wb")
         pickle.dump(details, details_file)
@@ -67,7 +79,7 @@ def login_check(event=None):
 
         # Alert
         free_alert = f"[Remotre] Welcome {user}. You are currently using the free plan, upgrade to a paid plan to save connections to the cloud"
-        basic_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your basic plan, upgrade to the premium plan to use the FTP tab"
+        basic_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your basic plan, upgrade to the premium plan to use the SFTP tab"
         premium_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your premium plan"
         login.destroy()
     elif days < 1:
@@ -124,7 +136,8 @@ login_button_frame.grid(row=5, column=1, columnspan=2)
 login_button = Button(login_button_frame, text="Login", command=login_check)
 login_button.grid(row=1, column=1, sticky="nsew")
 
-login.bind("<Return>", login_check)
+password_entry.bind("<Return>", login_check)
+username_entry.bind("<Return>", login_check)
 
 # Login error
 login_error_string = StringVar()
@@ -141,30 +154,7 @@ if logged == True:
 else:
     exit()
 
-### Main App ###
-# Variables
-width = 900
-height = 670
 
-name = ""
-username = ""
-hostname = ""
-port = "22"
-platform = platform.system()
-RGB_variable = [235, 52, 52]
-
-# Craete logins file if not already existing
-if os.path.isfile("./logins.JSON") == False:
-    logins_file = open("logins.JSON", "wb")
-    logins = []
-    pickle.dump(logins, logins_file)
-    logins_file.close()
-
-# Load list into variable
-logins_file = open("logins.JSON", "rb")
-logins = []
-logins = pickle.load(logins_file)
-logins_file.close()
 
 
 ### Functions ###
@@ -208,18 +198,18 @@ def connect_ssh():
         # Mac
         if platform == "Darwin":
             os.system(f"osascript -e 'tell app \"Terminal\"\n do script \"ssh {username}@{hostname} -p {port}\"\n end tell'")
-            alert(f"[Remotre] Connecting to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal. Window may start minimized...")
+            alert(f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal. Window may start minimized...")
         # Windows
         elif platform == "Windows":
             os.system(f"cmd /c start ssh {username}@{hostname} -p {port}")
-            alert(f"[Remotre] Connecting to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
+            alert(f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
         # Linux
         elif platform == "Linux":
             """ this needs to be fixed
             os.system(f"gnome-terminal -e 'bash -c \"\"ssh {username}@{hostname} -p {port}\";bash\"'")
             """
 
-            alert(f"[Remotre] Connecting to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
+            alert(f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
         else:
             alert(f"[Remotre] Sorry, your OS is not yet supported")
     except:
@@ -228,18 +218,96 @@ def connect_ssh():
     alert_output.configure(state="disabled")
 
 
-# Connect ftp
-def connect_ftp():
+# Connect sftp
+def connect_sftp_popup():
+    def cleanup(event=None):
+        global password
+        password = sftp_password_entry.get()
+        popup.destroy()
+        connect_sftp()
+
+
+    # Enter password popup window #
+    popup = Toplevel()
+    popup.title("Enter password for SFTP")
+    x_center = (root.winfo_screenwidth()/2) - (200/2)
+    y_center = (root.winfo_screenheight()/2) - (100/2)
+    popup.geometry(f"{200}x{100}+{int(x_center)}+{int(y_center)}")
+    popup.resizable(width=False, height=False)
+
+    # Label
+    sftp_password_label_string = StringVar()
+    sftp_password_label = Label(popup, textvariable=sftp_password_label_string)
+    sftp_password_label["font"] = Font(size=16)
+    sftp_password_label_string.set("SFTP password:")
+    sftp_password_label.grid(row=1, column=1)
+
+    # Entry
+    sftp_password_entry_frame = Frame(popup, width=200, height=26)
+    sftp_password_entry_frame.grid_propagate(False)
+    sftp_password_entry_frame.grid(row=2, column=1)
+    Grid.rowconfigure(sftp_password_entry_frame, 2, weight=1)
+    Grid.columnconfigure(sftp_password_entry_frame, 1, weight=1)
+
+    sftp_password_entry = Entry(sftp_password_entry_frame)
+    sftp_password_entry.grid(row=2, column=1)
+    sftp_password_entry.configure(show="*")
+
+    # Connect button
+    connect_button_frame = Frame(popup, width=100, height=20)
+    connect_button_frame.grid_propagate(False)
+    Grid.columnconfigure(connect_button_frame, 1, weight=1)
+    Grid.rowconfigure(connect_button_frame, 1, weight=1)
+    connect_button_frame.grid(row=3, column=1, columnspan=2)
+
+    connect_button = Button(connect_button_frame, text="Connect", command=cleanup)
+    connect_button.grid(row=1, column=1, sticky="nsew")
+
+    sftp_password_entry.bind("<Return>", cleanup)
+
+    popup.mainloop()
+
+
+def connect_sftp():
     name = name_entry.get()
+    username = username_entry.get()
+    hostname = hostname_entry.get()
+    port = port_entry.get()
+
     if plan == "free":
-        #alert("[Remotre] Please buy our premium plan to use this feature")
-        alert("[Remotre] Sorry this feature is currently not available")
+        alert("[Remotre] Please buy our premium plan to use this feature")
     elif plan == "basic":
-        #alert("[Remotre] Please buy our premium plan to use this feature")
-        alert("[Remotre] Sorry this feature is currently not available")
+        alert("[Remotre] Please buy our premium plan to use this feature")
     elif plan == "premium":
-        #alert(f"[Remotre] Connecting to '{name}' via FTP... Check the FTP tab.")
-        alert("[Remotre] Sorry this feature is currently not available")
+        alert(f"[SFTP] Attemping to connect to {name} at {username}@{hostname}:{port}")
+
+        # SFTP
+        try:
+            connection = sftp.Connection(host=hostname, username=username, password=password, port=int(port))
+            serverpath = "/root/test.txt"
+            localpath = "/Users/sunwookim/Documents/Coding projects/SSH-Client-V2/test.txt"
+            connection.put(localpath, serverpath)
+            files = connection.listdir("/root")
+            alert(files)
+            connection.close()
+
+            # Change to SFTP tab
+            tabs.select(SFTP_canvas)
+
+        except Exception as e:
+            alert(f"[SFTP] {e}")
+            
+
+        """
+        # Connect via SFTP
+        transport = paramiko.Transport((hostname, port))
+        transport.connect(username=username, password=password)
+
+        sftp = paramiko.SFTPClient.from_transport(transport)
+
+        serverpath = "/root/"
+        clientpath = "/root/"
+        """
 
 
 # Load
@@ -286,6 +354,10 @@ def save():
     hostname = hostname_entry.get()
     port = port_entry.get()
 
+    # Set default port
+    if isinstance(port, str):
+        port = 22
+
     # Load list into variable
     logins_file = open("logins.JSON", "rb")
     logins = []
@@ -300,7 +372,7 @@ def save():
     if name in names:
         showerror(title="Error", message="This login name already exists")
     # Check if entries are empty
-    elif name != "" and username != "" and hostname != "" and port != "":
+    elif name != "" and username != "" and hostname != "":
         # Save to file
         logins.append([name, username, hostname, port])
         logins_file = open("logins.JSON", "wb")
@@ -404,6 +476,31 @@ def RGB():
     root.after(5, RGB)
 
 
+### Main App ###
+# Variables
+width = 900
+height = 673
+
+name = ""
+username = ""
+hostname = ""
+port = "22"
+platform = platform.system()
+RGB_variable = [235, 52, 52]
+
+# Craete logins file if not already existing
+if os.path.isfile("./logins.JSON") == False:
+    logins_file = open("logins.JSON", "wb")
+    logins = []
+    pickle.dump(logins, logins_file)
+    logins_file.close()
+
+# Load list into variable
+logins_file = open("logins.JSON", "rb")
+logins = []
+logins = pickle.load(logins_file)
+logins_file.close()
+
 ### Window setup ###
 # Window
 root = Tk()
@@ -411,11 +508,11 @@ root.title("Remotre")
 x_center = (root.winfo_screenwidth()/2) - (width/2)
 y_center = (root.winfo_screenheight()/2) - (height/2)
 root.geometry(f"{width}x{height}+{int(x_center)}+{int(y_center)}")
-root.resizable(width=False, height=False)
+root.minsize(width, height)
 
 # Images
 SSH_image = PhotoImage(file = "./icons/ssh.png")
-FTP_image = PhotoImage(file = "./icons/ftp.png")
+SFTP_image = PhotoImage(file = "./icons/sftp.png")
 load_image = PhotoImage(file = "./icons/load.png")
 save_image = PhotoImage(file = "./icons/save.png")
 delete_image = PhotoImage(file = "./icons/delete.png")
@@ -424,7 +521,7 @@ delete_image = PhotoImage(file = "./icons/delete.png")
 # Toolbar frame #
 toolbar_frame = Frame(root, width=160, height=650)
 toolbar_frame.grid_propagate(False)
-toolbar_frame.grid(row=1, column=1)
+toolbar_frame.grid(row=1, column=1, sticky="nw")
 
 # RGB watermark
 RGB_stage = 1
@@ -432,9 +529,11 @@ RGB_variable = (235, 52, 52)
 RGB_string = StringVar()
 RGB_frame = Frame(toolbar_frame, width=160, height=50)
 RGB_frame.grid_propagate(False)
+Grid.columnconfigure(RGB_frame, 1, weight=1)
+Grid.rowconfigure(RGB_frame, 1, weight=1)
 RGB_frame.grid(row=1, column=1, sticky="nsew")
 RGB_label = Label(RGB_frame, textvariable=RGB_string, fg="#%02x%02x%02x" % RGB_variable)
-RGB_label["font"] = Font(size=38)
+RGB_label["font"] = Font(family="arial", size=38)
 RGB_string.set("Remotre")
 RGB_label.grid(row=1, column=1, sticky="nsew")
 RGB()
@@ -442,8 +541,8 @@ RGB()
 # Connect ssh button
 button(toolbar_frame, width=160, height=50, row=2, column=1, text="Connect SSH", command=connect_ssh, image=SSH_image)
 
-# Connect ftp button
-button(toolbar_frame, width=160, height=50, row=3, column=1, text="Connect FTP", command=connect_ftp, image=FTP_image)
+# Connect sftp button
+button(toolbar_frame, width=160, height=50, row=3, column=1, text="Connect SFTP", command=connect_sftp_popup, image=SFTP_image)
 
 # Connections label frame
 connections_label_string = StringVar()
@@ -514,9 +613,10 @@ button(toolbar_frame, width=160, height=50, row=9, column=1, text="Delete", comm
 
 ### Tabs ###
 # Tab frame #
-tabs_frame = Frame(root, width=740, height=650)
-tabs_frame.grid_propagate(False)
-tabs_frame.grid(row=1, column=2)
+tabs_frame = Frame(root)
+tabs_frame.grid(row=1, column=2, rowspan=2, sticky="nsew")
+Grid.columnconfigure(root, 2, weight=1)
+Grid.rowconfigure(root, 1, weight=1)
 
 # Tab list #
 tabs = ttk.Notebook(tabs_frame)
@@ -535,19 +635,29 @@ Grid.columnconfigure(alerts_frame, 1, weight=1)
 Grid.rowconfigure(alerts_frame, 1, weight=1)
 alert_output.configure(state="disabled")
 
-# FTP tab #
-FTP_frame = Frame(tabs)
-tabs.add(FTP_frame, text="FTP")
+# SFTP tab #
+SFTP_canvas = Canvas(tabs)
+tabs.add(SFTP_canvas, text="SFTP")
+Grid.columnconfigure(SFTP_canvas, 1, weight=1)
+Grid.rowconfigure(SFTP_canvas, 1, weight=1)
 
-FTP_string = StringVar()
-FTP_label = Label(FTP_frame, textvariable=FTP_string)
-FTP_label["font"] = Font(size=32)
-FTP_string.set("Sorry this feature is currently not available")
-FTP_label.grid(row=1, column=1, sticky="nsew")
+# Server
+SFTP_server_frame = Frame(SFTP_canvas)
+SFTP_server_frame.grid(row=1, column=1, sticky="nsew")
+Grid.columnconfigure(SFTP_server_frame, 1, weight=1)
+
+# Path
+SFTP_server_path_frame = Frame(SFTP_server_frame, height=30, borderwidth=5, relief=RIDGE)
+SFTP_server_path_frame.grid(row=1, column=1, sticky="nsew")
+
+SFTP_server_path_string = StringVar()
+SFTP_server_path_label = Entry(SFTP_server_path_frame, textvariable=SFTP_server_path_string)
+SFTP_server_path_label.grid(row=1, column=1, sticky="nsew")
+SFTP_server_path_string.set("Testsdasasdasdadasdsadasdasdassadassdadassadasasasassadsads")
 
 ### Account status ###
 account_status_frame = Frame(root, width=900)
-account_status_frame.grid(row=2, column=1, columnspan=2)
+account_status_frame.grid(row=3, column=1, columnspan=2)
 account_status_label_string = StringVar()
 account_status_label = Label(account_status_frame, textvariable=account_status_label_string)
 account_status_label_string.set(f"{plan.capitalize()}: {days} days remaining")
