@@ -269,6 +269,8 @@ def connect_sftp_popup():
 
 
 def connect_sftp():
+    global serverpath, localpath
+
     name = name_entry.get()
     username = username_entry.get()
     hostname = hostname_entry.get()
@@ -286,28 +288,20 @@ def connect_sftp():
             connection = sftp.Connection(host=hostname, username=username, password=password, port=int(port))
             serverpath = "/root/test.txt"
             localpath = "/Users/sunwookim/Documents/Coding projects/SSH-Client-V2/test.txt"
+            SFTP_path_string.set(serverpath)
             connection.put(localpath, serverpath)
             files = connection.listdir("/root")
             alert(files)
             connection.close()
 
             # Change to SFTP tab
-            tabs.select(SFTP_canvas)
+            tabs.select(SFTP_frame)
 
+            # List files
+            for f in files:
+                Label(SFTP_files_frame, text=f).pack(side="top", anchor=W)
         except Exception as e:
             alert(f"[SFTP] {e}")
-            
-
-        """
-        # Connect via SFTP
-        transport = paramiko.Transport((hostname, port))
-        transport.connect(username=username, password=password)
-
-        sftp = paramiko.SFTPClient.from_transport(transport)
-
-        serverpath = "/root/"
-        clientpath = "/root/"
-        """
 
 
 # Load
@@ -488,6 +482,9 @@ port = "22"
 platform = platform.system()
 RGB_variable = [235, 52, 52]
 
+serverpath = ""
+localpath = ""
+
 # Craete logins file if not already existing
 if os.path.isfile("./logins.JSON") == False:
     logins_file = open("logins.JSON", "wb")
@@ -516,6 +513,30 @@ SFTP_image = PhotoImage(file = "./icons/sftp.png")
 load_image = PhotoImage(file = "./icons/load.png")
 save_image = PhotoImage(file = "./icons/save.png")
 delete_image = PhotoImage(file = "./icons/delete.png")
+sevenZ_image = PhotoImage(file = "./icons/7z.png")
+bin_image = PhotoImage(file = "./icons/bin.png")
+css_image = PhotoImage(file = "./icons/css.png")
+dll_image = PhotoImage(file = "./icons/dll.png")
+dmg_image = PhotoImage(file = "./icons/dmg.png")
+doc_image = PhotoImage(file = "./icons/doc.png")
+exe_image = PhotoImage(file = "./icons/exe.png")
+file_image = PhotoImage(file = "./icons/file.png")
+folder_image = PhotoImage(file = "./icons/folder.png")
+gif_image = PhotoImage(file = "./icons/gif.png")
+html_image = PhotoImage(file = "./icons/html.png")
+image_image = PhotoImage(file = "./icons/image.png")
+jpg_image = PhotoImage(file = "./icons/jpg.png")
+js_image = PhotoImage(file = "./icons/js.png")
+mp3_image = PhotoImage(file = "./icons/mp3.png")
+ogg_image = PhotoImage(file = "./icons/ogg.png")
+pdf_image = PhotoImage(file = "./icons/pdf.png")
+png_image = PhotoImage(file = "./icons/png.png")
+ppt_image = PhotoImage(file = "./icons/ppt.png")
+py_image = PhotoImage(file = "./icons/py.png")
+rar_image = PhotoImage(file = "./icons/rar.png")
+txt_image = PhotoImage(file = "./icons/txt.png")
+xml_image = PhotoImage(file = "./icons/xml.png")
+zip_image = PhotoImage(file = "./icons/zip.png")
 
 ### Toolbar widgets ###
 # Toolbar frame #
@@ -636,24 +657,32 @@ Grid.rowconfigure(alerts_frame, 1, weight=1)
 alert_output.configure(state="disabled")
 
 # SFTP tab #
-SFTP_canvas = Canvas(tabs)
-tabs.add(SFTP_canvas, text="SFTP")
-Grid.columnconfigure(SFTP_canvas, 1, weight=1)
-Grid.rowconfigure(SFTP_canvas, 1, weight=1)
+SFTP_frame = Frame(tabs)
+tabs.add(SFTP_frame, text="SFTP")
+Grid.columnconfigure(SFTP_frame, 1, weight=1)
+Grid.rowconfigure(SFTP_frame, 2, weight=1)
 
-# Server
-SFTP_server_frame = Frame(SFTP_canvas)
-SFTP_server_frame.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(SFTP_server_frame, 1, weight=1)
+# Toolbar
+SFTP_toolbar_frame = Frame(SFTP_frame, height=50, borderwidth=5, relief=RIDGE)
+SFTP_toolbar_frame.grid(row=1, column=1, sticky="nsew")
+
+# SFTP explorer
+SFTP_explorer_frame = Frame(SFTP_frame, borderwidth=5, relief=RIDGE)
+SFTP_explorer_frame.grid(row=2, column=1, sticky="nsew")
+Grid.columnconfigure(SFTP_explorer_frame, 1, weight=1)
+Grid.rowconfigure(SFTP_explorer_frame, 2, weight=1)
 
 # Path
-SFTP_server_path_frame = Frame(SFTP_server_frame, height=30, borderwidth=5, relief=RIDGE)
-SFTP_server_path_frame.grid(row=1, column=1, sticky="nsew")
+SFTP_path_frame = Frame(SFTP_explorer_frame, height=30, borderwidth=5, relief=RIDGE)
+SFTP_path_frame.grid(row=1, column=1, sticky="nsew")
 
-SFTP_server_path_string = StringVar()
-SFTP_server_path_label = Entry(SFTP_server_path_frame, textvariable=SFTP_server_path_string)
-SFTP_server_path_label.grid(row=1, column=1, sticky="nsew")
-SFTP_server_path_string.set("Testsdasasdasdadasdsadasdasdassadassdadassadasasasassadsads")
+SFTP_path_string = StringVar()
+SFTP_path_label = Label(SFTP_path_frame, textvariable=SFTP_path_string)
+SFTP_path_label.grid(row=1, column=1, sticky="nsew")
+
+# Files
+SFTP_files_frame = Frame(SFTP_explorer_frame, borderwidth=5, relief=RIDGE)
+SFTP_files_frame.grid(row=2, column=1, sticky="nsew")
 
 ### Account status ###
 account_status_frame = Frame(root, width=900)
