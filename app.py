@@ -17,6 +17,8 @@ import pickle
 
 # Others
 from time import sleep
+import threading
+import math
 
 
 ### Login Screen ###
@@ -155,8 +157,6 @@ else:
     exit()
 
 
-
-
 ### Functions ###
 # Button
 def button(frame, width, height, row, column, text, command, image=None):
@@ -224,7 +224,9 @@ def connect_sftp_popup():
         global password
         password = sftp_password_entry.get()
         popup.destroy()
-        connect_sftp()
+        SFTP_thread = threading.Thread(target=connect_sftp)
+        SFTP_thread.daemon = True
+        SFTP_thread.start()
 
 
     # Enter password popup window #
@@ -269,7 +271,7 @@ def connect_sftp_popup():
 
 
 def connect_sftp():
-    global serverpath, localpath
+    global serverpath, localpath, connection, serverpath, localpath, files
 
     name = name_entry.get()
     username = username_entry.get()
@@ -286,22 +288,94 @@ def connect_sftp():
         # SFTP
         try:
             connection = sftp.Connection(host=hostname, username=username, password=password, port=int(port))
-            serverpath = "/root/test.txt"
+            serverpath = "/root"
             localpath = "/Users/sunwookim/Documents/Coding projects/SSH-Client-V2/test.txt"
             SFTP_path_string.set(serverpath)
-            connection.put(localpath, serverpath)
-            files = connection.listdir("/root")
-            alert(files)
-            connection.close()
+            files = connection.listdir(serverpath)
+            connection.cd(serverpath)
 
             # Change to SFTP tab
             tabs.select(SFTP_frame)
 
+            # Clear listbox
+            SFTP_files_listbox.delete(0, END)
+
             # List files
+            SFTP_files_listbox.insert(END, "..")
             for f in files:
-                Label(SFTP_files_frame, text=f).pack(side="top", anchor=W)
+                SFTP_files_listbox.insert(END, f)
+
+            # SFTP connected alert
+            alert(f"[SFTP] Connected to {name} at {username}@{hostname}:{port}")
         except Exception as e:
             alert(f"[SFTP] {e}")
+            tabs.select(alerts_frame)
+
+
+# SFTP download
+def sftp_download():
+    pass
+
+
+# SFTP upload
+def sftp_upload():
+    pass
+
+
+# SFTP refresh
+def sftp_refresh():
+    global serverpath, localpath, connection, serverpath, localpath, files
+    files = connection.listdir(serverpath)
+
+    # Clear listbox
+    SFTP_files_listbox.delete(0, END)
+
+    # List files
+    SFTP_files_listbox.insert(END, "..")
+    for f in files:
+        SFTP_files_listbox.insert(END, f)
+
+
+# SFTP disconnect
+def sftp_disconnect():
+    connection.close()
+
+    # Clear listbox
+    SFTP_files_listbox.delete(0, END)
+
+    # Clear server path
+    SFTP_path_string.set("")
+
+
+# SFTP actions
+def SFTP_action(event=None):
+    global serverpath, localpath, connection, serverpath, localpath, files
+    selected = SFTP_files_listbox.get(ACTIVE)
+
+    # Prevent action occuring twice when triple clicking
+    SFTP_files_listbox.unbind("<Double-1>")
+    SFTP_files_listbox.bind("<Double-1>", SFTP_action)
+
+    if selected != "":
+        if selected == "..":
+            connection.cd(serverpath + "/..")
+            while serverpath[-1] != "/":
+                serverpath = serverpath[:-1]
+            if serverpath[-1] == "/" and len(serverpath) > 1:
+                serverpath = serverpath[:-1]
+            SFTP_path_string.set(serverpath)
+            sftp_refresh()
+        elif connection.isdir(serverpath + "/" + selected):
+            if serverpath == "/":
+                serverpath = ""
+            serverpath += f"/{selected}"
+            SFTP_path_string.set(serverpath)
+            connection.cd(serverpath)
+            sftp_refresh()
+        else:
+            selected_type = "file"
+        print(selected_type)
+    return "break"
 
 
 # Load
@@ -467,7 +541,11 @@ def RGB():
 
     RGB_variable = tuple(list_RGB)
     RGB_label.configure(fg="#%02x%02x%02x" % RGB_variable)
-    root.after(5, RGB)
+    sleep(0.02)
+
+    RGB_thread = threading.Thread(target=RGB)
+    RGB_thread.daemon = True
+    RGB_thread.start()
 
 
 ### Main App ###
@@ -537,6 +615,10 @@ rar_image = PhotoImage(file = "./icons/rar.png")
 txt_image = PhotoImage(file = "./icons/txt.png")
 xml_image = PhotoImage(file = "./icons/xml.png")
 zip_image = PhotoImage(file = "./icons/zip.png")
+download_image = PhotoImage(file = "./icons/download.png")
+upload_image = PhotoImage(file = "./icons/upload.png")
+refresh_image = PhotoImage(file = "./icons/refresh.png")
+disconnect_image = PhotoImage(file = "./icons/disconnect.png")
 
 ### Toolbar widgets ###
 # Toolbar frame #
@@ -666,6 +748,18 @@ Grid.rowconfigure(SFTP_frame, 2, weight=1)
 SFTP_toolbar_frame = Frame(SFTP_frame, height=50, borderwidth=5, relief=RIDGE)
 SFTP_toolbar_frame.grid(row=1, column=1, sticky="nsew")
 
+# Download button
+button(SFTP_toolbar_frame, width=160, height=50, row=1, column=1, text="Download", command=sftp_download, image=download_image)
+
+# Upload button
+button(SFTP_toolbar_frame, width=160, height=50, row=1, column=2, text="Upload", command=sftp_upload, image=upload_image)
+
+# Refresh button
+button(SFTP_toolbar_frame, width=160, height=50, row=1, column=3, text="Refresh", command=sftp_refresh, image=refresh_image)
+
+# Disconnect button
+button(SFTP_toolbar_frame, width=160, height=50, row=1, column=4, text="Disconnect", command=sftp_disconnect, image=disconnect_image)
+
 # SFTP explorer
 SFTP_explorer_frame = Frame(SFTP_frame, borderwidth=5, relief=RIDGE)
 SFTP_explorer_frame.grid(row=2, column=1, sticky="nsew")
@@ -683,6 +777,20 @@ SFTP_path_label.grid(row=1, column=1, sticky="nsew")
 # Files
 SFTP_files_frame = Frame(SFTP_explorer_frame, borderwidth=5, relief=RIDGE)
 SFTP_files_frame.grid(row=2, column=1, sticky="nsew")
+
+# Listbox
+SFTP_files_listbox = Listbox(SFTP_files_frame, borderwidth=0)
+SFTP_files_listbox.grid(row=1, column=1, sticky="nsew")
+Grid.columnconfigure(SFTP_files_frame, 1, weight=1)
+Grid.rowconfigure(SFTP_files_frame, 1, weight=1)
+
+SFTP_files_listbox.bind("<Double-1>", SFTP_action)
+
+# Listbox scrollbar
+SFTP_files_listbox_scrollbar = Scrollbar(SFTP_files_frame, orient="vertical")
+SFTP_files_listbox_scrollbar.configure(command=SFTP_files_listbox.yview)
+SFTP_files_listbox_scrollbar.grid(row=1, column=2, sticky="nsew")
+SFTP_files_listbox.configure(yscrollcommand=SFTP_files_listbox_scrollbar.set)
 
 ### Account status ###
 account_status_frame = Frame(root, width=900)
