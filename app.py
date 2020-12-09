@@ -348,13 +348,12 @@ def sftp_disconnect():
 
 
 # SFTP actions
-def SFTP_action(event=None):
+def sftp_action(event=None):
     global serverpath, localpath, connection, serverpath, localpath, files
     selected = SFTP_files_listbox.get(ACTIVE)
 
-    # Prevent action occuring twice when triple clicking
+    # Prevent rapid clicking
     SFTP_files_listbox.unbind("<Double-1>")
-    SFTP_files_listbox.bind("<Double-1>", SFTP_action)
 
     if selected != "":
         if selected == "..":
@@ -374,8 +373,154 @@ def SFTP_action(event=None):
             sftp_refresh()
         else:
             selected_type = "file"
-        print(selected_type)
-    return "break"
+            print(selected_type)
+
+    listbox_doubleclick_bind_thread = threading.Thread(target=listbox_doubleclick_bind)
+    listbox_doubleclick_bind_thread.daemon = True
+    listbox_doubleclick_bind_thread.start()
+
+
+# Rebind double click
+def listbox_doubleclick_bind():
+    sleep(0.5)
+    SFTP_files_listbox.bind("<Double-1>", sftp_action)
+    print("done")
+
+
+# SFTP menu
+def sftp_menu(event):
+    selected = SFTP_files_listbox.get(ACTIVE)
+    if selected != "" and selected != "..":
+        # Menu design
+        menu = Menu(SFTP_files_frame, tearoff=0)
+        menu.add_command(label=f"Download '{selected}'")
+        menu.add_command(label="Rename", command=sftp_rename_popup)
+        menu.add_separator()
+        menu.add_command(label="Delete", command=sftp_delete_popup)
+
+        # Display menu
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
+
+
+# SFTP rename
+def sftp_rename_popup():
+    def cleanup(event=None):
+        global newname
+        newname = sftp_newname_entry.get()
+        popup.destroy()
+        SFTP_thread = threading.Thread(target=sftp_rename)
+        SFTP_thread.daemon = True
+        SFTP_thread.start()
+
+
+    # Enter new name popup window #
+    popup = Toplevel()
+    popup.title("Enter new name for file")
+    x_center = (root.winfo_screenwidth()/2) - (200/2)
+    y_center = (root.winfo_screenheight()/2) - (100/2)
+    popup.geometry(f"{200}x{100}+{int(x_center)}+{int(y_center)}")
+    popup.resizable(width=False, height=False)
+
+    selected = SFTP_files_listbox.get(ACTIVE)
+
+    # Label
+    sftp_newname_label_string = StringVar()
+    sftp_newname_label = Label(popup, textvariable=sftp_newname_label_string)
+    sftp_newname_label["font"] = Font(size=16)
+    sftp_newname_label_string.set("New name:")
+    sftp_newname_label.grid(row=1, column=1)
+
+    # Entry
+    sftp_newname_entry_frame = Frame(popup, width=200, height=26)
+    sftp_newname_entry_frame.grid_propagate(False)
+    sftp_newname_entry_frame.grid(row=2, column=1)
+    Grid.rowconfigure(sftp_newname_entry_frame, 2, weight=1)
+    Grid.columnconfigure(sftp_newname_entry_frame, 1, weight=1)
+
+    sftp_newname_entry = Entry(sftp_newname_entry_frame)
+    sftp_newname_entry.grid(row=2, column=1)
+    sftp_newname_entry.insert(0, selected)
+
+    # Rename button
+    rename_button_frame = Frame(popup, width=100, height=20)
+    rename_button_frame.grid_propagate(False)
+    Grid.columnconfigure(rename_button_frame, 1, weight=1)
+    Grid.rowconfigure(rename_button_frame, 1, weight=1)
+    rename_button_frame.grid(row=3, column=1, columnspan=2)
+
+    rename_button = Button(rename_button_frame, text="Rename", command=cleanup)
+    rename_button.grid(row=1, column=1, sticky="nsew")
+
+    sftp_newname_entry.bind("<Return>", cleanup)
+
+    popup.mainloop()
+
+
+def sftp_rename():
+    selected = SFTP_files_listbox.get(ACTIVE)
+    connection.rename(f"{serverpath}/{selected}", f"{serverpath}/{newname}")
+    sftp_refresh()
+
+
+# SFTP delete
+def sftp_delete_popup():
+    def cleanup(event=None):
+        global delete
+        delete = sftp_delete_entry.get()
+        if delete == "Confirm":
+            popup.destroy()
+            SFTP_thread = threading.Thread(target=sftp_delete)
+            SFTP_thread.daemon = True
+            SFTP_thread.start()
+
+
+    # Enter new name popup window #
+    popup = Toplevel()
+    popup.title("Enter new name for file")
+    x_center = (root.winfo_screenwidth()/2) - (200/2)
+    y_center = (root.winfo_screenheight()/2) - (100/2)
+    popup.geometry(f"{200}x{100}+{int(x_center)}+{int(y_center)}")
+    popup.resizable(width=False, height=False)
+
+    # Label
+    sftp_delete_label_string = StringVar()
+    sftp_delete_label = Label(popup, textvariable=sftp_delete_label_string)
+    sftp_delete_label["font"] = Font(size=16)
+    sftp_delete_label_string.set("Type 'Confirm' to delete:")
+    sftp_delete_label.grid(row=1, column=1)
+
+    # Entry
+    sftp_delete_entry_frame = Frame(popup, width=200, height=26)
+    sftp_delete_entry_frame.grid_propagate(False)
+    sftp_delete_entry_frame.grid(row=2, column=1)
+    Grid.rowconfigure(sftp_delete_entry_frame, 2, weight=1)
+    Grid.columnconfigure(sftp_delete_entry_frame, 1, weight=1)
+
+    sftp_delete_entry = Entry(sftp_delete_entry_frame)
+    sftp_delete_entry.grid(row=2, column=1)
+
+    # Confirm button
+    confirm_button_frame = Frame(popup, width=100, height=20)
+    confirm_button_frame.grid_propagate(False)
+    Grid.columnconfigure(confirm_button_frame, 1, weight=1)
+    Grid.rowconfigure(confirm_button_frame, 1, weight=1)
+    confirm_button_frame.grid(row=3, column=1, columnspan=2)
+
+    confirm_button = Button(confirm_button_frame, text="Confirm", command=cleanup)
+    confirm_button.grid(row=1, column=1, sticky="nsew")
+
+    sftp_delete_entry.bind("<Return>", cleanup)
+
+    popup.mainloop()
+
+
+def sftp_delete():
+    selected = SFTP_files_listbox.get(ACTIVE)
+    connection.execute(f"rm -rf {serverpath}/{selected}")
+    sftp_refresh()
 
 
 # Load
@@ -784,7 +929,8 @@ SFTP_files_listbox.grid(row=1, column=1, sticky="nsew")
 Grid.columnconfigure(SFTP_files_frame, 1, weight=1)
 Grid.rowconfigure(SFTP_files_frame, 1, weight=1)
 
-SFTP_files_listbox.bind("<Double-1>", SFTP_action)
+SFTP_files_listbox.bind("<Double-1>", sftp_action)
+SFTP_files_listbox.bind("<Button-2>", sftp_menu)
 
 # Listbox scrollbar
 SFTP_files_listbox_scrollbar = Scrollbar(SFTP_files_frame, orient="vertical")
