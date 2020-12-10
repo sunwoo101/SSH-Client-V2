@@ -781,7 +781,10 @@ Grid.columnconfigure(RGB_frame, 1, weight=1)
 Grid.rowconfigure(RGB_frame, 1, weight=1)
 RGB_frame.grid(row=1, column=1, sticky="nsew")
 RGB_label = Label(RGB_frame, textvariable=RGB_string, fg="#%02x%02x%02x" % RGB_variable)
-RGB_label["font"] = Font(family="arial", size=28)
+if platform == "Darwin":
+    RGB_label["font"] = Font(family="arial", size=38)
+else:
+    RGB_label["font"] = Font(family="arial", size=28)
 RGB_string.set("Remotre")
 RGB_label.grid(row=1, column=1, sticky="nsew")
 RGB()
@@ -798,7 +801,10 @@ connections_label_frame = Frame(toolbar_frame, width=160, height=25)
 connections_label_frame.grid_propagate(False)
 connections_label_frame.grid(row=4, column=1)
 connections_label = Label(connections_label_frame, textvariable=connections_label_string)
-connections_label["font"] = Font(size=12)
+if platform == "Darwin":
+    connections_label["font"] = Font(size=16)
+else:
+    connections_label["font"] = Font(size=12)
 connections_label_string.set("Saved Connections")
 connections_label.grid(row=1, column=1, sticky="nsew")
 
