@@ -396,6 +396,10 @@ def sftp_menu(event):
         menu.add_command(label=f"Download '{selected}'")
         menu.add_command(label="Rename", command=sftp_rename_popup)
         menu.add_separator()
+        menu.add_command(label=f"Copy '{selected}''", command=sftp_copy)
+        if cp != "":
+            menu.add_command(label=f"Paste '{cp_name}'", command=sftp_paste)
+        menu.add_separator()
         menu.add_command(label="Delete", command=sftp_delete_popup)
 
         # Display menu
@@ -403,6 +407,20 @@ def sftp_menu(event):
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
+
+
+# SFTP copy
+def sftp_copy():
+    global cp, cp_name
+    selected = SFTP_files_listbox.get(ACTIVE)
+    cp = f"{serverpath}/{selected}"
+    cp_name = selected
+
+
+# SFTP paste
+def sftp_paste():
+    connection.execute(f"cp {cp} {serverpath}/{cp_name}")
+    sftp_refresh()
 
 
 # SFTP rename
@@ -468,7 +486,6 @@ def sftp_rename():
 # SFTP delete
 def sftp_delete_popup():
     def cleanup(event=None):
-        global delete
         delete = sftp_delete_entry.get()
         if delete == "Confirm":
             popup.destroy()
@@ -697,6 +714,8 @@ def RGB():
 # Variables
 width = 900
 height = 673
+cp = ""
+cp_name = ""
 
 name = ""
 username = ""
