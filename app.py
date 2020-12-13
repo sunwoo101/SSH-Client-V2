@@ -4,6 +4,7 @@ from tkinter import ttk
 from tkinter.font import *
 from tkinter.scrolledtext import *
 from tkinter.messagebox import *
+from tkinter import filedialog
 
 # SFTP
 import pysftp as sftp
@@ -314,16 +315,55 @@ def connect_sftp():
 
 # SFTP download
 def sftp_download():
-    pass
+    sftp_download_thread = threading.Thread(target=sftp_download_handler)
+    sftp_download_thread.daemon = True
+    sftp_download_thread.start()
+
+
+def sftp_download_handler():
+    selected = SFTP_files_listbox.get(ACTIVE)
+
+    if selected != "":
+        # Get local path
+        localpath = filedialog.askdirectory()
+        if localpath[-1] == "/":
+            localpath = localpath[:-1]
+        showinfo(title="Download started", message="Download started")
+        connection.get(f"{serverpath}/{selected}", f"{localpath}/{selected}")
+        showinfo(title="Download finished", message="Download finished")
 
 
 # SFTP upload
 def sftp_upload():
-    pass
+    sftp_upload_thread = threading.Thread(target=sftp_upload_handler)
+    sftp_upload_thread.daemon = True
+    sftp_upload_thread.start()
+
+
+def sftp_upload_handler():
+    if connection:
+        localpath = filedialog.askopenfilename()
+        filename = ""
+
+        # Get file name
+        while localpath[-1] != "/":
+            filename = localpath[-1] + filename
+            localpath = localpath[:-1]
+        if localpath[-1] == "/":
+            localpath = localpath[:-1]
+        showinfo(title="Upload started", message="Upload started")
+        connection.put(f"{localpath}/{filename}", f"{serverpath}/{filename}")
+        showinfo(title="Upload finished", message="Upload finished")
 
 
 # SFTP refresh
 def sftp_refresh():
+    sftp_refresh_thread = threading.Thread(target=sftp_refresh_handler)
+    sftp_refresh_thread.daemon = True
+    sftp_refresh_thread.start()
+
+
+def sftp_refresh_handler():
     global serverpath, localpath, connection, serverpath, localpath, files
     files = connection.listdir(serverpath)
 
@@ -755,30 +795,6 @@ SFTP_image = PhotoImage(file = "./icons/sftp.png")
 load_image = PhotoImage(file = "./icons/load.png")
 save_image = PhotoImage(file = "./icons/save.png")
 delete_image = PhotoImage(file = "./icons/delete.png")
-sevenZ_image = PhotoImage(file = "./icons/7z.png")
-bin_image = PhotoImage(file = "./icons/bin.png")
-css_image = PhotoImage(file = "./icons/css.png")
-dll_image = PhotoImage(file = "./icons/dll.png")
-dmg_image = PhotoImage(file = "./icons/dmg.png")
-doc_image = PhotoImage(file = "./icons/doc.png")
-exe_image = PhotoImage(file = "./icons/exe.png")
-file_image = PhotoImage(file = "./icons/file.png")
-folder_image = PhotoImage(file = "./icons/folder.png")
-gif_image = PhotoImage(file = "./icons/gif.png")
-html_image = PhotoImage(file = "./icons/html.png")
-image_image = PhotoImage(file = "./icons/image.png")
-jpg_image = PhotoImage(file = "./icons/jpg.png")
-js_image = PhotoImage(file = "./icons/js.png")
-mp3_image = PhotoImage(file = "./icons/mp3.png")
-ogg_image = PhotoImage(file = "./icons/ogg.png")
-pdf_image = PhotoImage(file = "./icons/pdf.png")
-png_image = PhotoImage(file = "./icons/png.png")
-ppt_image = PhotoImage(file = "./icons/ppt.png")
-py_image = PhotoImage(file = "./icons/py.png")
-rar_image = PhotoImage(file = "./icons/rar.png")
-txt_image = PhotoImage(file = "./icons/txt.png")
-xml_image = PhotoImage(file = "./icons/xml.png")
-zip_image = PhotoImage(file = "./icons/zip.png")
 download_image = PhotoImage(file = "./icons/download.png")
 upload_image = PhotoImage(file = "./icons/upload.png")
 refresh_image = PhotoImage(file = "./icons/refresh.png")
