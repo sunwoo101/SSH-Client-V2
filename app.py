@@ -550,7 +550,8 @@ def sftp_menu(event):
         # Menu contents
         menu = Menu(SFTP_files_frame, tearoff=0)
         if selected != "" and selected != "..":
-            menu.add_command(label=f"Download '{selected}'", command=sftp_download)
+            menu.add_command(
+                label=f"Download '{selected}'", command=sftp_download)
             menu.add_command(
                 label=f"Rename '{selected}'", command=sftp_rename_popup)
             menu.add_separator()
@@ -1150,7 +1151,12 @@ Grid.columnconfigure(SFTP_files_frame, 0, weight=1)
 Grid.rowconfigure(SFTP_files_frame, 0, weight=1)
 
 SFTP_files_listbox.bind("<Double-1>", sftp_action)
-SFTP_files_listbox.bind("<Button-3>", sftp_menu)
+
+if platform == "Darwin":
+    SFTP_files_listbox.bind("<Button-2>", sftp_menu)
+
+else:
+    SFTP_files_listbox.bind("<Button-3>", sftp_menu)
 
 # Listbox scrollbar
 SFTP_files_listbox_scrollbar = Scrollbar(SFTP_files_frame, orient="vertical")
