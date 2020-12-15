@@ -1150,7 +1150,7 @@ Grid.columnconfigure(SFTP_files_frame, 0, weight=1)
 Grid.rowconfigure(SFTP_files_frame, 0, weight=1)
 
 SFTP_files_listbox.bind("<Double-1>", sftp_action)
-SFTP_files_listbox.bind("<Button-2>", sftp_menu)
+SFTP_files_listbox.bind("<Button-3>", sftp_menu)
 
 # Listbox scrollbar
 SFTP_files_listbox_scrollbar = Scrollbar(SFTP_files_frame, orient="vertical")
