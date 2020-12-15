@@ -34,24 +34,32 @@ y_center = (login.winfo_screenheight()/2) - 200
 login.geometry("+%d+%d" % (x_center, y_center))
 login.resizable(width=False, height=False)
 
-# Craete details file if not already existing
-if os.path.isfile("./details.JSON") == False:
-    details_file = open("details.JSON", "wb")
+try:
+    # Load list into variable
+    details_file = open("details.JSON", "rb")
     details = []
-    pickle.dump(details, details_file)
+    details = pickle.load(details_file)
     details_file.close()
 
-# Load list into variable
-details_file = open("details.JSON", "rb")
-details = []
-details = pickle.load(details_file)
-details_file.close()
+    # Store client details
+    user = details[0]
+    passwd = details[1]
+    plan = details[2]
+    days = details[3]
 
-# Store variables
-user = details[0]
-passwd = details[1]
-plan = details[2]
-days = details[3]
+except:
+    # Add client to database
+    if os.path.isfile("./details.JSON") == False:
+        details_file = open("details.JSON", "wb")
+        details = []
+        pickle.dump(details, details_file)
+        details_file.close()
+
+        user = ""
+        passwd = ""
+        plan = "premium"
+        days = "unlimited"
+
 
 ### Functions ###
 # Loop
@@ -59,6 +67,7 @@ def loop():
     # Show or hide password
     if show_password_checkbox_variable.get() == 1:
         password_entry.configure(show="")
+
     else:
         password_entry.configure(show="*")
 
@@ -68,12 +77,16 @@ def loop():
 # Connect to database and login
 def login_check(event=None):
     global logged, user, days, free_alert, basic_alert, premium_alert
+
+    # Check for correct password and if plan is active
     if (password_entry.get() == "Password") and (isinstance(days, str) or days > 0):
         logged = True
         user = username_entry.get()
         passwd = password_entry.get()
+
         if isinstance(days, int):
             days -= 1
+
         # Save details
         details = [user, passwd, plan, days]
         details_file = open("details.JSON", "wb")
@@ -85,8 +98,10 @@ def login_check(event=None):
         basic_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your basic plan, upgrade to the premium plan to use the SFTP tab"
         premium_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your premium plan"
         login.destroy()
+
     elif days < 1:
         login_error_string.set("Your plan has expired")
+
     else:
         login_error_string.set("Incorrect username/password")
 
@@ -126,7 +141,8 @@ password_entry.configure(show="*")
 password_entry.insert(0, passwd)
 
 show_password_checkbox_variable = IntVar()
-show_password_checkbox = Checkbutton(login_frame, text="Show Password", variable=show_password_checkbox_variable)
+show_password_checkbox = Checkbutton(
+    login_frame, text="Show Password", variable=show_password_checkbox_variable)
 show_password_checkbox.grid(row=4, column=1, columnspan=2)
 
 # Button
@@ -144,16 +160,19 @@ username_entry.bind("<Return>", login_check)
 
 # Login error
 login_error_string = StringVar()
-login_error_label = Label(login_frame, fg="red", textvariable=login_error_string)
+login_error_label = Label(login_frame, fg="red",
+                          textvariable=login_error_string)
 login_error_label["font"] = Font(size=12)
 login_error_label.grid(row=6, column=1, columnspan=2, sticky="nsew")
 
 loop()
-
 login_frame.mainloop()
 
+
+# Show main app when login is successful
 if logged == True:
     pass
+
 else:
     exit()
 
@@ -165,7 +184,8 @@ def button(frame, width, height, row, column, text, command, image=None):
     button_frame.grid_propagate(False)
     button_frame.grid(row=row, column=column)
 
-    button = Button(button_frame, text=text, activeforeground="grey", command=command, image=image, compound="left", anchor=W)
+    button = Button(button_frame, text=text, activeforeground="grey",
+                    command=command, image=image, compound="left", anchor=W)
     button.grid(row=1, column=1, sticky="nsew")
     Grid.columnconfigure(button_frame, 1, weight=1)
     Grid.rowconfigure(button_frame, 1, weight=1)
@@ -192,27 +212,27 @@ def connect_ssh():
     # Set default port
     if type(port) != int:
         port = 22
+
     if port == "":
         port = 22
 
     try:
         # Mac
         if platform == "Darwin":
-            os.system(f"osascript -e 'tell app \"Terminal\"\n do script \"ssh {username}@{hostname} -p {port}\"\n end tell'")
-            alert(f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal. Window may start minimized...")
+            os.system(
+                f"osascript -e 'tell app \"Terminal\"\n do script \"ssh {username}@{hostname} -p {port}\"\n end tell'")
+            alert(
+                f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal. Window may start minimized...")
+
         # Windows
         elif platform == "Windows":
             os.system(f"cmd /c start ssh {username}@{hostname} -p {port}")
-            alert(f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
-        # Linux
-        elif platform == "Linux":
-            """ this needs to be fixed
-            os.system(f"gnome-terminal -e 'bash -c \"\"ssh {username}@{hostname} -p {port}\";bash\"'")
-            """
+            alert(
+                f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
 
-            alert(f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
         else:
             alert(f"[Remotre] Sorry, your OS is not yet supported")
+
     except:
         print("Entries are invalid")
     alert_output.see(END)
@@ -228,7 +248,6 @@ def connect_sftp_popup():
         SFTP_thread = threading.Thread(target=connect_sftp)
         SFTP_thread.daemon = True
         SFTP_thread.start()
-
 
     # Enter password popup window #
     popup = Toplevel()
@@ -263,7 +282,8 @@ def connect_sftp_popup():
     Grid.rowconfigure(connect_button_frame, 1, weight=1)
     connect_button_frame.grid(row=3, column=1, columnspan=2)
 
-    connect_button = Button(connect_button_frame, text="Connect", command=cleanup)
+    connect_button = Button(connect_button_frame,
+                            text="Connect", command=cleanup)
     connect_button.grid(row=1, column=1, sticky="nsew")
 
     sftp_password_entry.bind("<Return>", cleanup)
@@ -271,24 +291,30 @@ def connect_sftp_popup():
     popup.mainloop()
 
 
+# Connect sftp
 def connect_sftp():
-    global serverpath, localpath, connection, serverpath, localpath, files
+    global serverpath, localpath, connection, serverpath, localpath, files, connected
 
     name = name_entry.get()
     username = username_entry.get()
     hostname = hostname_entry.get()
     port = port_entry.get()
 
+    # Check if plan supports sftp
     if plan == "free":
         alert("[Remotre] Please buy our premium plan to use this feature")
+
     elif plan == "basic":
         alert("[Remotre] Please buy our premium plan to use this feature")
+
     elif plan == "premium":
-        alert(f"[SFTP] Attemping to connect to {name} at {username}@{hostname}:{port}")
+        alert(
+            f"[SFTP] Attemping to connect to {name} at {username}@{hostname}:{port}")
 
         # SFTP
         try:
-            connection = sftp.Connection(host=hostname, username=username, password=password, port=int(port))
+            connection = sftp.Connection(
+                host=hostname, username=username, password=password, port=int(port))
             serverpath = "/root"
             localpath = "/Users/sunwookim/Documents/Coding projects/SSH-Client-V2/test.txt"
             SFTP_path_string.set(serverpath)
@@ -303,11 +329,19 @@ def connect_sftp():
 
             # List files
             SFTP_files_listbox.insert(END, "..")
+
             for f in files:
                 SFTP_files_listbox.insert(END, f)
 
+            # Claer label
+            transfer_progress_string.set("Transfer Failed")
+
             # SFTP connected alert
-            alert(f"[SFTP] Connected to {name} at {username}@{hostname}:{port}")
+            alert(
+                f"[SFTP] Connected to {name} at {username}@{hostname}:{port}")
+
+            connected = True
+
         except Exception as e:
             alert(f"[SFTP] {e}")
             tabs.select(alerts_frame)
@@ -316,68 +350,110 @@ def connect_sftp():
 # SFTP download
 def sftp_download():
     global busy
+
     if busy == False:
-        busy = True
         sftp_download_thread = threading.Thread(target=sftp_download_handler)
         sftp_download_thread.daemon = True
         sftp_download_thread.start()
+
     else:
-        showinfo(title="Please wait", message="A file is being transferred. Please wait")
+        showinfo(title="Please wait",
+                 message="A file is being transferred. Please wait")
 
 
 def sftp_download_handler():
     global busy
     selected = SFTP_files_listbox.get(ACTIVE)
 
-    if selected != "":
+    if selected != "" and connected:
         # Get local path
         localpath = filedialog.askdirectory()
-        if localpath[-1] == "/":
-            localpath = localpath[:-1]
-        selected.replace(" ", "\ ")
-        showinfo(title=f"Downloading {selected}", message=f"Downloading {selected}")
-        connection.get(f"{serverpath}/{selected}", f"{localpath}/{selected}", callback=lambda x,y: transfer_progress(x,y))
-        sftp_refresh()
-        showinfo(title=f"Downloaded {selected}", message=f"Downloaded {selected}")
-        busy = False
+
+        if localpath:
+
+            # Remove '/' from the end of path
+            if localpath[-1] == "/":
+                localpath = localpath[:-1]
+
+            # Replace spaces with '\ '
+            selected.replace(" ", "\ ")
+            busy = True
+
+            # Download started popup
+            showinfo(title=f"Downloading {selected}",
+                     message=f"Downloading {selected}")
+            # Download
+            connection.get(f"{serverpath}/{selected}", f"{localpath}/{selected}",
+                           callback=lambda x, y: transfer_progress(x, y))
+
+            # Download finished popup
+            showinfo(title=f"Downloaded {selected}",
+                     message=f"Downloaded {selected}")
+
+            busy = False
+            transfer_progress_string.set("Done")
 
 
+# Show transfer progress
 def transfer_progress(x, y):
     percent = math.ceil(100.0 * x / float(y))
     filesize = f'{math.ceil(y/1024):,} KB' if y > 1024 else f'{y} bytes'
-    transfer_progress_string.set(f"{percent}% {filesize}")
+    transfer_progress_string.set(f"{percent}% of {filesize}")
 
 
 # SFTP upload
 def sftp_upload():
     global busy
+
     if busy == False:
-        busy = True
         sftp_upload_thread = threading.Thread(target=sftp_upload_handler)
         sftp_upload_thread.daemon = True
         sftp_upload_thread.start()
+
     else:
-        showinfo(title="Please wait", message="A file is being transferred. Please wait")
+        showinfo(title="Please wait",
+                 message="A file is being transferred. Please wait")
 
 
 def sftp_upload_handler():
     global busy
-    if connection:
+
+    if connected:
         localpath = filedialog.askopenfilename()
         selected = ""
 
-        # Get file name
-        while localpath[-1] != "/":
-            selected = localpath[-1] + selected
-            localpath = localpath[:-1]
-        if localpath[-1] == "/":
-            localpath = localpath[:-1]
-        selected.replace(" ", "\ ")
-        showinfo(title=f"Uploading {selected}", message=f"Uploading {selected}")
-        connection.put(f"{localpath}/{selected}", f"{serverpath}/{selected}", callback=lambda x,y: transfer_progress(x,y))
-        sftp_refresh()
-        showinfo(title=f"Uploaded {selected}", message=f"Uploaded {selected}")
-        busy = False
+        if localpath:
+
+            # Get file name
+            while localpath[-1] != "/":
+                selected = localpath[-1] + selected
+                localpath = localpath[:-1]
+
+            # Remove '/' from the end of path
+            if localpath[-1] == "/":
+                localpath = localpath[:-1]
+
+            # Replace spaces with '\ '
+            selected.replace(" ", "\ ")
+            busy = True
+
+            # Uploading popup
+            showinfo(title=f"Uploading {selected}",
+                     message=f"Uploading {selected}")
+
+            # Upload
+            connection.put(f"{localpath}/{selected}", f"{serverpath}/{selected}",
+                           callback=lambda x, y: transfer_progress(x, y))
+
+            # Refresh files list
+            sftp_refresh()
+
+            # Upload finished popup
+            showinfo(title=f"Uploaded {selected}",
+                     message=f"Uploaded {selected}")
+
+            busy = False
+            transfer_progress_string.set("Done")
 
 
 # SFTP refresh
@@ -389,26 +465,39 @@ def sftp_refresh():
 
 def sftp_refresh_handler():
     global serverpath, localpath, connection, serverpath, localpath, files
-    files = connection.listdir(serverpath)
 
-    # Clear listbox
-    SFTP_files_listbox.delete(0, END)
+    if connected:
+        files = connection.listdir(serverpath)
 
-    # List files
-    SFTP_files_listbox.insert(END, "..")
-    for f in files:
-        SFTP_files_listbox.insert(END, f)
+        # Clear listbox
+        SFTP_files_listbox.delete(0, END)
+
+        # List files
+        SFTP_files_listbox.insert(END, "..")
+        for f in files:
+            SFTP_files_listbox.insert(END, f)
 
 
 # SFTP disconnect
 def sftp_disconnect():
-    connection.close()
+    global connected, busy
 
-    # Clear listbox
-    SFTP_files_listbox.delete(0, END)
+    if connected:
+        # Disconnect
+        connection.close()
 
-    # Clear server path
-    SFTP_path_string.set("")
+        # Clear listbox
+        SFTP_files_listbox.delete(0, END)
+
+        # Clear server path
+        SFTP_path_string.set("")
+
+        connected = False
+        busy = False
+
+        # Show alert if transfer failed
+        if transfer_progress_string.get() != "" and transfer_progress_string.get() != "Done":
+            transfer_progress_string.set("Transfer Failed")
 
 
 # SFTP actions
@@ -419,27 +508,35 @@ def sftp_action(event=None):
     # Prevent rapid clicking
     SFTP_files_listbox.unbind("<Double-1>")
 
+    # Change directory
     if selected != "":
+
         if selected == "..":
             connection.cd(serverpath + "/..")
+
             while serverpath[-1] != "/":
                 serverpath = serverpath[:-1]
+
             if serverpath[-1] == "/" and len(serverpath) > 1:
                 serverpath = serverpath[:-1]
             SFTP_path_string.set(serverpath)
             sftp_refresh()
+
         elif connection.isdir(serverpath + "/" + selected):
+
             if serverpath == "/":
                 serverpath = ""
             serverpath += f"/{selected}"
             SFTP_path_string.set(serverpath)
             connection.cd(serverpath)
             sftp_refresh()
+
         else:
             selected_type = "file"
             print(selected_type)
 
-    listbox_doubleclick_bind_thread = threading.Thread(target=listbox_doubleclick_bind)
+    listbox_doubleclick_bind_thread = threading.Thread(
+        target=listbox_doubleclick_bind)
     listbox_doubleclick_bind_thread.daemon = True
     listbox_doubleclick_bind_thread.start()
 
@@ -454,21 +551,26 @@ def listbox_doubleclick_bind():
 # SFTP menu
 def sftp_menu(event):
     selected = SFTP_files_listbox.get(ACTIVE)
+
     if selected != "" and selected != "..":
-        # Menu design
+        # Menu contents
         menu = Menu(SFTP_files_frame, tearoff=0)
         menu.add_command(label=f"Download '{selected}'", command=sftp_download)
-        menu.add_command(label=f"Rename '{selected}'", command=sftp_rename_popup)
+        menu.add_command(
+            label=f"Rename '{selected}'", command=sftp_rename_popup)
         menu.add_separator()
         menu.add_command(label=f"Copy '{selected}''", command=sftp_copy)
+
         if cp != "":
             menu.add_command(label=f"Paste '{cp_name}'", command=sftp_paste)
         menu.add_separator()
-        menu.add_command(label=f"Delete '{selected}'", command=sftp_delete_popup)
+        menu.add_command(
+            label=f"Delete '{selected}'", command=sftp_delete_popup)
 
         # Display menu
         try:
             menu.tk_popup(event.x_root, event.y_root)
+
         finally:
             menu.grab_release()
 
@@ -476,6 +578,7 @@ def sftp_menu(event):
 # SFTP copy
 def sftp_copy():
     global cp, cp_name
+
     selected = SFTP_files_listbox.get(ACTIVE)
     cp = f"{serverpath}/{selected}"
     cp_name = selected
@@ -491,12 +594,12 @@ def sftp_paste():
 def sftp_rename_popup():
     def cleanup(event=None):
         global newname
+
         newname = sftp_newname_entry.get()
         popup.destroy()
         SFTP_thread = threading.Thread(target=sftp_rename)
         SFTP_thread.daemon = True
         SFTP_thread.start()
-
 
     # Enter new name popup window #
     popup = Toplevel()
@@ -557,7 +660,6 @@ def sftp_delete_popup():
             SFTP_thread.daemon = True
             SFTP_thread.start()
 
-
     # Enter new name popup window #
     popup = Toplevel()
     popup.title("Enter new name for file")
@@ -590,7 +692,8 @@ def sftp_delete_popup():
     Grid.rowconfigure(confirm_button_frame, 1, weight=1)
     confirm_button_frame.grid(row=3, column=1, columnspan=2)
 
-    confirm_button = Button(confirm_button_frame, text="Confirm", command=cleanup)
+    confirm_button = Button(confirm_button_frame,
+                            text="Confirm", command=cleanup)
     confirm_button.grid(row=1, column=1, sticky="nsew")
 
     sftp_delete_entry.bind("<Return>", cleanup)
@@ -618,12 +721,13 @@ def load():
 
     # Search for the selected login in the list
     for i in logins:
+
         if str(selected) == str(i[0]):
             name = i[0]
             username = i[1]
             hostname = i[2]
             port = i[3]
-            
+
             # Load
             name_entry.delete(0, END)
             name_entry.insert(0, name)
@@ -661,10 +765,11 @@ def save():
     names = []
     for i in logins:
         names.append(i[0])
-    
+
     # Check if login name exists
     if name in names:
         showerror(title="Error", message="This login name already exists")
+
     # Check if entries are empty
     elif name != "" and username != "" and hostname != "":
         # Save to file
@@ -674,9 +779,11 @@ def save():
         logins_file.close()
 
         refresh()
+
     # Error if entries are empty
     else:
-        showerror(title="Error",message="One or more inputs are empty")
+        showerror(title="Error", message="One or more inputs are empty")
+
 
 # Refresh
 def refresh():
@@ -709,6 +816,7 @@ def delete():
 
     # Delete
     for i in logins:
+
         if str(selected) == str(i[0]):
             logins.remove(i)
 
@@ -721,46 +829,60 @@ def delete():
 
 
 # RGB #
+RGB_variable = [235, 52, 52]
+
+
 def RGB():
     global RGB_variable
     global RGB_stage
     list_RGB = list(RGB_variable)
 
-    # Stage switching #
+    # Stage rgb values #
     # Stage 1
     if RGB_variable == (235, 52, 52):
         RGB_stage = 1
+
     # Stage 2
     if RGB_variable == (235, 235, 52):
         RGB_stage = 2
+
     # Stage 3
     if RGB_variable == (52, 235, 52):
         RGB_stage = 3
+
     # Stage 4
     if RGB_variable == (52, 235, 235):
         RGB_stage = 4
+
     # Stage 5
     if RGB_variable == (52, 52, 235):
         RGB_stage = 5
+
     # Stage 6
     if RGB_variable == (235, 52, 235):
         RGB_stage = 6
 
+    # Stage switching #
     # Stage 1
     if RGB_stage == 1:
         list_RGB[1] += 1
+
     # Stage 2
     if RGB_stage == 2:
         list_RGB[0] -= 1
+
     # Stage 3
     if RGB_stage == 3:
         list_RGB[2] += 1
+
     # Stage 4
     if RGB_stage == 4:
         list_RGB[1] -= 1
+
     # Stage 5
     if RGB_stage == 5:
         list_RGB[0] += 1
+
     # Stage 6
     if RGB_stage == 6:
         list_RGB[2] -= 1
@@ -777,17 +899,20 @@ def RGB():
 ### Main App ###
 # Variables
 width = 1000
-height = 673
+height = 780
+
 cp = ""
 cp_name = ""
+
 busy = False
+connected = False
 
 name = ""
 username = ""
 hostname = ""
 port = "22"
+
 platform = platform.system()
-RGB_variable = [235, 52, 52]
 
 serverpath = ""
 localpath = ""
@@ -815,21 +940,21 @@ root.geometry(f"{width}x{height}+{int(x_center)}+{int(y_center)}")
 root.minsize(width, height)
 
 # Images
-SSH_image = PhotoImage(file = "./icons/ssh.png")
-SFTP_image = PhotoImage(file = "./icons/sftp.png")
-load_image = PhotoImage(file = "./icons/load.png")
-save_image = PhotoImage(file = "./icons/save.png")
-delete_image = PhotoImage(file = "./icons/delete.png")
-download_image = PhotoImage(file = "./icons/download.png")
-upload_image = PhotoImage(file = "./icons/upload.png")
-refresh_image = PhotoImage(file = "./icons/refresh.png")
-disconnect_image = PhotoImage(file = "./icons/disconnect.png")
+SSH_image = PhotoImage(file="./icons/ssh.png")
+SFTP_image = PhotoImage(file="./icons/sftp.png")
+load_image = PhotoImage(file="./icons/load.png")
+save_image = PhotoImage(file="./icons/save.png")
+delete_image = PhotoImage(file="./icons/delete.png")
+download_image = PhotoImage(file="./icons/download.png")
+upload_image = PhotoImage(file="./icons/upload.png")
+refresh_image = PhotoImage(file="./icons/refresh.png")
+disconnect_image = PhotoImage(file="./icons/disconnect.png")
 
 ### Toolbar widgets ###
 # Toolbar frame #
-toolbar_frame = Frame(root, width=160, height=650)
+toolbar_frame = Frame(root, width=160, height=755)
 toolbar_frame.grid_propagate(False)
-toolbar_frame.grid(row=1, column=1, sticky="nw")
+toolbar_frame.grid(row=0, column=0, sticky="nw")
 
 # RGB watermark
 RGB_stage = 1
@@ -837,106 +962,119 @@ RGB_variable = (235, 52, 52)
 RGB_string = StringVar()
 RGB_frame = Frame(toolbar_frame, width=160, height=50)
 RGB_frame.grid_propagate(False)
-Grid.columnconfigure(RGB_frame, 1, weight=1)
-Grid.rowconfigure(RGB_frame, 1, weight=1)
-RGB_frame.grid(row=1, column=1, sticky="nsew")
-RGB_label = Label(RGB_frame, textvariable=RGB_string, fg="#%02x%02x%02x" % RGB_variable)
+Grid.columnconfigure(RGB_frame, 0, weight=1)
+Grid.rowconfigure(RGB_frame, 0, weight=1)
+RGB_frame.grid(row=0, column=0, sticky="nsew")
+RGB_label = Label(RGB_frame, textvariable=RGB_string,
+                  fg="#%02x%02x%02x" % RGB_variable)
+
 if platform == "Darwin":
     RGB_label["font"] = Font(family="arial", size=38)
+
 else:
     RGB_label["font"] = Font(family="arial", size=28)
+
 RGB_string.set("Remotre")
-RGB_label.grid(row=1, column=1, sticky="nsew")
+RGB_label.grid(row=0, column=0, sticky="nsew")
 RGB()
 
 # Connect ssh button
-button(toolbar_frame, width=160, height=50, row=2, column=1, text="Connect SSH", command=connect_ssh, image=SSH_image)
+button(toolbar_frame, width=160, height=50, row=1, column=0,
+       text="Connect SSH", command=connect_ssh, image=SSH_image)
 
 # Connect sftp button
-button(toolbar_frame, width=160, height=50, row=3, column=1, text="Connect SFTP", command=connect_sftp_popup, image=SFTP_image)
+button(toolbar_frame, width=160, height=50, row=2, column=0,
+       text="Connect SFTP", command=connect_sftp_popup, image=SFTP_image)
 
 # Connections label frame
 connections_label_string = StringVar()
 connections_label_frame = Frame(toolbar_frame, width=160, height=25)
 connections_label_frame.grid_propagate(False)
-connections_label_frame.grid(row=4, column=1)
-connections_label = Label(connections_label_frame, textvariable=connections_label_string)
+connections_label_frame.grid(row=3, column=0)
+connections_label = Label(connections_label_frame,
+                          textvariable=connections_label_string)
+
 if platform == "Darwin":
     connections_label["font"] = Font(size=16)
+
 else:
     connections_label["font"] = Font(size=12)
+
 connections_label_string.set("Saved Connections")
-connections_label.grid(row=1, column=1, sticky="nsew")
+connections_label.grid(row=0, column=0, sticky="nsew")
 
 # Connections frame #
 connections_frame = Frame(toolbar_frame, width=160, height=220)
 connections_frame.grid_propagate(False)
-connections_frame.grid(row=5, column=1)
+connections_frame.grid(row=4, column=0)
 
 # Connections list frame
 connections_listbox_frame = Frame(connections_frame, width=144, height=220)
 connections_listbox_frame.grid_propagate(False)
-connections_listbox_frame.grid(row=1, column=1)
+connections_listbox_frame.grid(row=0, column=0)
 
 # Listbox
 connections_listbox = Listbox(connections_listbox_frame)
-connections_listbox.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(connections_listbox_frame, 1, weight=1)
-Grid.rowconfigure(connections_listbox_frame, 1, weight=1)
+connections_listbox.grid(row=0, column=0, sticky="nsew")
+Grid.columnconfigure(connections_listbox_frame, 0, weight=1)
+Grid.rowconfigure(connections_listbox_frame, 0, weight=1)
 
 # Listbox scrollbar
 connections_listbox_scrollbar = Scrollbar(connections_frame, orient="vertical")
 connections_listbox_scrollbar.configure(command=connections_listbox.yview)
-connections_listbox_scrollbar.grid(row=1, column=2, sticky="nsew")
+connections_listbox_scrollbar.grid(row=0, column=1, sticky="nsew")
 connections_listbox.configure(yscrollcommand=connections_listbox_scrollbar.set)
 
 # Entry frame #
-entry_frame = Frame(toolbar_frame, width=160, height=105)
+entry_frame = Frame(toolbar_frame, width=160, height=210)
 entry_frame.grid_propagate(False)
-entry_frame.grid(row=6, column=1)
-Grid.columnconfigure(entry_frame, 1, weight=1)
+entry_frame.grid(row=5, column=0)
+Grid.columnconfigure(entry_frame, 0, weight=1)
 
 # Name
+Label(entry_frame, text="Connection Name").grid(row=0, column=0)
 name_entry = Entry(entry_frame, bd=1)
-name_entry.grid(row=1, column=1)
-name_entry.insert(0, "Connection")
+name_entry.grid(row=1, column=0, sticky="nsew")
 
 # Username
+Label(entry_frame, text="Username").grid(row=2, column=0)
 username_entry = Entry(entry_frame, bd=1)
-username_entry.grid(row=2, column=1)
-username_entry.insert(0, "root")
+username_entry.grid(row=3, column=0, sticky="nsew")
 
 # Host
+Label(entry_frame, text="Hostname").grid(row=4, column=0)
 hostname_entry = Entry(entry_frame, bd=1)
-hostname_entry.grid(row=3, column=1)
-hostname_entry.insert(0, "example.com")
+hostname_entry.grid(row=5, column=0, sticky="nsew")
 
 # Port
+Label(entry_frame, text="Port").grid(row=6, column=0)
 port_entry = Entry(entry_frame, bd=1)
-port_entry.grid(row=5, column=1)
-port_entry.insert(0, 22)
+port_entry.grid(row=7, column=0, sticky="nsew")
 
 # Load button
-button(toolbar_frame, width=160, height=50, row=7, column=1, text="Load", command=load, image=load_image)
+button(toolbar_frame, width=160, height=50, row=6, column=0,
+       text="Load", command=load, image=load_image)
 
 # Save button
-button(toolbar_frame, width=160, height=50, row=8, column=1, text="Save", command=save, image=save_image)
+button(toolbar_frame, width=160, height=50, row=7, column=0,
+       text="Save", command=save, image=save_image)
 
 # Delete button
-button(toolbar_frame, width=160, height=50, row=9, column=1, text="Delete", command=delete, image=delete_image)
+button(toolbar_frame, width=160, height=50, row=8, column=0,
+       text="Delete", command=delete, image=delete_image)
 
 ### Tabs ###
 # Tab frame #
 tabs_frame = Frame(root)
-tabs_frame.grid(row=1, column=2, rowspan=2, sticky="nsew")
-Grid.columnconfigure(root, 2, weight=1)
-Grid.rowconfigure(root, 1, weight=1)
+tabs_frame.grid(row=0, column=1, rowspan=2, sticky="nsew")
+Grid.columnconfigure(root, 1, weight=1)
+Grid.rowconfigure(root, 0, weight=1)
 
 # Tab list #
 tabs = ttk.Notebook(tabs_frame)
-tabs.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(tabs_frame, 1, weight=1)
-Grid.rowconfigure(tabs_frame, 1, weight=1)
+tabs.grid(row=0, column=0, sticky="nsew")
+Grid.columnconfigure(tabs_frame, 0, weight=1)
+Grid.rowconfigure(tabs_frame, 0, weight=1)
 
 # Alerts tab #
 alerts_frame = Frame(tabs)
@@ -944,61 +1082,67 @@ tabs.add(alerts_frame, text="Alerts")
 
 # Alerts output
 alert_output = ScrolledText(alerts_frame)
-alert_output.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(alerts_frame, 1, weight=1)
-Grid.rowconfigure(alerts_frame, 1, weight=1)
+alert_output.grid(row=0, column=0, sticky="nsew")
+Grid.columnconfigure(alerts_frame, 0, weight=1)
+Grid.rowconfigure(alerts_frame, 0, weight=1)
 alert_output.configure(state="disabled")
 
 # SFTP tab #
 SFTP_frame = Frame(tabs)
 tabs.add(SFTP_frame, text="SFTP")
-Grid.columnconfigure(SFTP_frame, 1, weight=1)
-Grid.rowconfigure(SFTP_frame, 2, weight=1)
+Grid.columnconfigure(SFTP_frame, 0, weight=1)
+Grid.rowconfigure(SFTP_frame, 1, weight=1)
 
 # Toolbar
 SFTP_toolbar_frame = Frame(SFTP_frame, height=50, borderwidth=5, relief=RIDGE)
-SFTP_toolbar_frame.grid(row=1, column=1, sticky="nsew")
+SFTP_toolbar_frame.grid(row=0, column=0, sticky="nsew")
 
 # Download button
-button(SFTP_toolbar_frame, width=160, height=50, row=1, column=1, text="Download", command=sftp_download, image=download_image)
+button(SFTP_toolbar_frame, width=160, height=50, row=0, column=0,
+       text="Download", command=sftp_download, image=download_image)
 
 # Upload button
-button(SFTP_toolbar_frame, width=160, height=50, row=1, column=2, text="Upload", command=sftp_upload, image=upload_image)
+button(SFTP_toolbar_frame, width=160, height=50, row=0, column=1,
+       text="Upload", command=sftp_upload, image=upload_image)
 
 # Refresh button
-button(SFTP_toolbar_frame, width=160, height=50, row=1, column=3, text="Refresh", command=sftp_refresh, image=refresh_image)
+button(SFTP_toolbar_frame, width=160, height=50, row=0, column=2,
+       text="Refresh", command=sftp_refresh, image=refresh_image)
 
 # Disconnect button
-button(SFTP_toolbar_frame, width=160, height=50, row=1, column=4, text="Disconnect", command=sftp_disconnect, image=disconnect_image)
+button(SFTP_toolbar_frame, width=160, height=50, row=0, column=3,
+       text="Disconnect", command=sftp_disconnect, image=disconnect_image)
 
 # Download/Upload progress
 transfer_progress_string = StringVar()
-transfer_progress_label = Label(SFTP_toolbar_frame, textvariable=transfer_progress_string)
-transfer_progress_label.grid(row=1, column=5)
+transfer_progress_label = Label(
+    SFTP_toolbar_frame, textvariable=transfer_progress_string)
+transfer_progress_label.grid(row=0, column=4)
 
 # SFTP explorer
 SFTP_explorer_frame = Frame(SFTP_frame, borderwidth=5, relief=RIDGE)
-SFTP_explorer_frame.grid(row=2, column=1, sticky="nsew")
-Grid.columnconfigure(SFTP_explorer_frame, 1, weight=1)
-Grid.rowconfigure(SFTP_explorer_frame, 2, weight=1)
+SFTP_explorer_frame.grid(row=1, column=0, sticky="nsew")
+Grid.columnconfigure(SFTP_explorer_frame, 0, weight=1)
+Grid.rowconfigure(SFTP_explorer_frame, 1, weight=1)
 
 # Path
-SFTP_path_frame = Frame(SFTP_explorer_frame, height=30, borderwidth=5, relief=RIDGE)
-SFTP_path_frame.grid(row=1, column=1, sticky="nsew")
+SFTP_path_frame = Frame(SFTP_explorer_frame, height=30,
+                        borderwidth=5, relief=RIDGE)
+SFTP_path_frame.grid(row=0, column=0, sticky="nsew")
 
 SFTP_path_string = StringVar()
 SFTP_path_label = Label(SFTP_path_frame, textvariable=SFTP_path_string)
-SFTP_path_label.grid(row=1, column=1, sticky="nsew")
+SFTP_path_label.grid(row=0, column=0, sticky="nsew")
 
 # Files
 SFTP_files_frame = Frame(SFTP_explorer_frame, borderwidth=5, relief=RIDGE)
-SFTP_files_frame.grid(row=2, column=1, sticky="nsew")
+SFTP_files_frame.grid(row=1, column=0, sticky="nsew")
 
 # Listbox
 SFTP_files_listbox = Listbox(SFTP_files_frame, borderwidth=0)
-SFTP_files_listbox.grid(row=1, column=1, sticky="nsew")
-Grid.columnconfigure(SFTP_files_frame, 1, weight=1)
-Grid.rowconfigure(SFTP_files_frame, 1, weight=1)
+SFTP_files_listbox.grid(row=0, column=0, sticky="nsew")
+Grid.columnconfigure(SFTP_files_frame, 0, weight=1)
+Grid.rowconfigure(SFTP_files_frame, 0, weight=1)
 
 SFTP_files_listbox.bind("<Double-1>", sftp_action)
 SFTP_files_listbox.bind("<Button-2>", sftp_menu)
@@ -1006,22 +1150,25 @@ SFTP_files_listbox.bind("<Button-2>", sftp_menu)
 # Listbox scrollbar
 SFTP_files_listbox_scrollbar = Scrollbar(SFTP_files_frame, orient="vertical")
 SFTP_files_listbox_scrollbar.configure(command=SFTP_files_listbox.yview)
-SFTP_files_listbox_scrollbar.grid(row=1, column=2, sticky="nsew")
+SFTP_files_listbox_scrollbar.grid(row=0, column=1, sticky="nsew")
 SFTP_files_listbox.configure(yscrollcommand=SFTP_files_listbox_scrollbar.set)
 
 ### Account status ###
 account_status_frame = Frame(root, width=900)
-account_status_frame.grid(row=3, column=1, columnspan=2)
+account_status_frame.grid(row=2, column=0, columnspan=2)
 account_status_label_string = StringVar()
-account_status_label = Label(account_status_frame, textvariable=account_status_label_string)
+account_status_label = Label(
+    account_status_frame, textvariable=account_status_label_string)
 account_status_label_string.set(f"{plan.capitalize()}: {days} days remaining")
-account_status_label.grid(row=1, column=1)
+account_status_label.grid(row=0, column=0)
 
 # Account alert
 if plan == "free":
     alert(free_alert)
+
 elif plan == "basic":
     alert(basic_alert)
+
 elif plan == "premium":
     alert(premium_alert)
 
