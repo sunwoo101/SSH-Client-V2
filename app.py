@@ -315,12 +315,18 @@ def connect_sftp():
 
 # SFTP download
 def sftp_download():
-    sftp_download_thread = threading.Thread(target=sftp_download_handler)
-    sftp_download_thread.daemon = True
-    sftp_download_thread.start()
+    global busy
+    if busy == False:
+        busy = True
+        sftp_download_thread = threading.Thread(target=sftp_download_handler)
+        sftp_download_thread.daemon = True
+        sftp_download_thread.start()
+    else:
+        showinfo(title="Please wait", message="A file is being transferred. Please wait")
 
 
 def sftp_download_handler():
+    global busy
     selected = SFTP_files_listbox.get(ACTIVE)
 
     if selected != "":
@@ -328,32 +334,50 @@ def sftp_download_handler():
         localpath = filedialog.askdirectory()
         if localpath[-1] == "/":
             localpath = localpath[:-1]
-        showinfo(title="Download started", message="Download started")
-        connection.get(f"{serverpath}/{selected}", f"{localpath}/{selected}")
-        showinfo(title="Download finished", message="Download finished")
+        selected.replace(" ", "\ ")
+        showinfo(title=f"Downloading {selected}", message=f"Downloading {selected}")
+        connection.get(f"{serverpath}/{selected}", f"{localpath}/{selected}", callback=lambda x,y: transfer_progress(x,y))
+        sftp_refresh()
+        showinfo(title=f"Downloaded {selected}", message=f"Downloaded {selected}")
+        busy = False
+
+
+def transfer_progress(x, y):
+    percent = math.ceil(100.0 * x / float(y))
+    filesize = f'{math.ceil(y/1024):,} KB' if y > 1024 else f'{y} bytes'
+    transfer_progress_string.set(f"{percent}% {filesize}")
 
 
 # SFTP upload
 def sftp_upload():
-    sftp_upload_thread = threading.Thread(target=sftp_upload_handler)
-    sftp_upload_thread.daemon = True
-    sftp_upload_thread.start()
+    global busy
+    if busy == False:
+        busy = True
+        sftp_upload_thread = threading.Thread(target=sftp_upload_handler)
+        sftp_upload_thread.daemon = True
+        sftp_upload_thread.start()
+    else:
+        showinfo(title="Please wait", message="A file is being transferred. Please wait")
 
 
 def sftp_upload_handler():
+    global busy
     if connection:
         localpath = filedialog.askopenfilename()
-        filename = ""
+        selected = ""
 
         # Get file name
         while localpath[-1] != "/":
-            filename = localpath[-1] + filename
+            selected = localpath[-1] + selected
             localpath = localpath[:-1]
         if localpath[-1] == "/":
             localpath = localpath[:-1]
-        showinfo(title="Upload started", message="Upload started")
-        connection.put(f"{localpath}/{filename}", f"{serverpath}/{filename}")
-        showinfo(title="Upload finished", message="Upload finished")
+        selected.replace(" ", "\ ")
+        showinfo(title=f"Uploading {selected}", message=f"Uploading {selected}")
+        connection.put(f"{localpath}/{selected}", f"{serverpath}/{selected}", callback=lambda x,y: transfer_progress(x,y))
+        sftp_refresh()
+        showinfo(title=f"Uploaded {selected}", message=f"Uploaded {selected}")
+        busy = False
 
 
 # SFTP refresh
@@ -433,14 +457,14 @@ def sftp_menu(event):
     if selected != "" and selected != "..":
         # Menu design
         menu = Menu(SFTP_files_frame, tearoff=0)
-        menu.add_command(label=f"Download '{selected}'")
-        menu.add_command(label="Rename", command=sftp_rename_popup)
+        menu.add_command(label=f"Download '{selected}'", command=sftp_download)
+        menu.add_command(label=f"Rename '{selected}'", command=sftp_rename_popup)
         menu.add_separator()
         menu.add_command(label=f"Copy '{selected}''", command=sftp_copy)
         if cp != "":
             menu.add_command(label=f"Paste '{cp_name}'", command=sftp_paste)
         menu.add_separator()
-        menu.add_command(label="Delete", command=sftp_delete_popup)
+        menu.add_command(label=f"Delete '{selected}'", command=sftp_delete_popup)
 
         # Display menu
         try:
@@ -752,10 +776,11 @@ def RGB():
 
 ### Main App ###
 # Variables
-width = 900
+width = 1000
 height = 673
 cp = ""
 cp_name = ""
+busy = False
 
 name = ""
 username = ""
@@ -945,6 +970,11 @@ button(SFTP_toolbar_frame, width=160, height=50, row=1, column=3, text="Refresh"
 
 # Disconnect button
 button(SFTP_toolbar_frame, width=160, height=50, row=1, column=4, text="Disconnect", command=sftp_disconnect, image=disconnect_image)
+
+# Download/Upload progress
+transfer_progress_string = StringVar()
+transfer_progress_label = Label(SFTP_toolbar_frame, textvariable=transfer_progress_string)
+transfer_progress_label.grid(row=1, column=5)
 
 # SFTP explorer
 SFTP_explorer_frame = Frame(SFTP_frame, borderwidth=5, relief=RIDGE)
