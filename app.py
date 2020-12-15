@@ -234,7 +234,7 @@ def connect_ssh():
             alert(f"[Remotre] Sorry, your OS is not yet supported")
 
     except:
-        print("Entries are invalid")
+        alert("Entries are invalid")
     alert_output.see(END)
     alert_output.configure(state="disabled")
 
@@ -334,7 +334,7 @@ def connect_sftp():
                 SFTP_files_listbox.insert(END, f)
 
             # Claer label
-            transfer_progress_string.set("Transfer Failed")
+            transfer_progress_string.set("")
 
             # SFTP connected alert
             alert(
@@ -375,8 +375,6 @@ def sftp_download_handler():
             if localpath[-1] == "/":
                 localpath = localpath[:-1]
 
-            # Replace spaces with '\ '
-            selected.replace(" ", "\ ")
             busy = True
 
             # Download started popup
@@ -433,8 +431,6 @@ def sftp_upload_handler():
             if localpath[-1] == "/":
                 localpath = localpath[:-1]
 
-            # Replace spaces with '\ '
-            selected.replace(" ", "\ ")
             busy = True
 
             # Uploading popup
@@ -532,8 +528,7 @@ def sftp_action(event=None):
             sftp_refresh()
 
         else:
-            selected_type = "file"
-            print(selected_type)
+            pass
 
     listbox_doubleclick_bind_thread = threading.Thread(
         target=listbox_doubleclick_bind)
@@ -545,27 +540,29 @@ def sftp_action(event=None):
 def listbox_doubleclick_bind():
     sleep(0.5)
     SFTP_files_listbox.bind("<Double-1>", sftp_action)
-    print("done")
 
 
 # SFTP menu
 def sftp_menu(event):
     selected = SFTP_files_listbox.get(ACTIVE)
 
-    if selected != "" and selected != "..":
+    if (selected != "" and selected != "..") or cp:
         # Menu contents
         menu = Menu(SFTP_files_frame, tearoff=0)
-        menu.add_command(label=f"Download '{selected}'", command=sftp_download)
-        menu.add_command(
-            label=f"Rename '{selected}'", command=sftp_rename_popup)
-        menu.add_separator()
-        menu.add_command(label=f"Copy '{selected}''", command=sftp_copy)
+        if selected != "" and selected != "..":
+            menu.add_command(label=f"Download '{selected}'", command=sftp_download)
+            menu.add_command(
+                label=f"Rename '{selected}'", command=sftp_rename_popup)
+            menu.add_separator()
+            menu.add_command(label=f"Copy '{selected}''", command=sftp_copy)
 
         if cp != "":
             menu.add_command(label=f"Paste '{cp_name}'", command=sftp_paste)
-        menu.add_separator()
-        menu.add_command(
-            label=f"Delete '{selected}'", command=sftp_delete_popup)
+
+        if selected != "" and selected != "..":
+            menu.add_separator()
+            menu.add_command(
+                label=f"Delete '{selected}'", command=sftp_delete_popup)
 
         # Display menu
         try:
@@ -580,14 +577,21 @@ def sftp_copy():
     global cp, cp_name
 
     selected = SFTP_files_listbox.get(ACTIVE)
-    cp = f"{serverpath}/{selected}"
-    cp_name = selected
+    n = selected.replace(" ", "\ ")
+    cp = f"{serverpath}/{n}"
+    cp_name = selected.replace(" ", "\ ")
 
 
 # SFTP paste
 def sftp_paste():
+    global cp, cp_name
+
+    # Paste
     connection.execute(f"cp {cp} {serverpath}/{cp_name}")
     sftp_refresh()
+
+    cp = ""
+    cp_name = ""
 
 
 # SFTP rename
@@ -703,6 +707,7 @@ def sftp_delete_popup():
 
 def sftp_delete():
     selected = SFTP_files_listbox.get(ACTIVE)
+    selected = selected.replace(" ", "\ ")
     connection.execute(f"rm -rf {serverpath}/{selected}")
     sftp_refresh()
 
