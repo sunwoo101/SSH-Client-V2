@@ -21,7 +21,7 @@ from time import sleep
 import threading
 import math
 
-
+"""
 ### Login Screen ###
 # Variables
 logged = False
@@ -175,7 +175,7 @@ if logged == True:
 
 else:
     exit()
-
+"""
 
 ### Functions ###
 # Button
@@ -300,6 +300,7 @@ def connect_sftp():
     hostname = hostname_entry.get()
     port = port_entry.get()
 
+    """
     # Check if plan supports sftp
     if plan == "free":
         alert("[Remotre] Please buy our premium plan to use this feature")
@@ -308,43 +309,43 @@ def connect_sftp():
         alert("[Remotre] Please buy our premium plan to use this feature")
 
     elif plan == "premium":
+    """
+
+    alert(f"[SFTP] Attemping to connect to {name} at {username}@{hostname}:{port}")
+
+    # SFTP
+    try:
+        connection = sftp.Connection(
+            host=hostname, username=username, password=password, port=int(port))
+        serverpath = "/root"
+        localpath = "/Users/sunwookim/Documents/Coding projects/SSH-Client-V2/test.txt"
+        SFTP_path_string.set(serverpath)
+        files = connection.listdir(serverpath)
+        connection.cd(serverpath)
+
+        # Change to SFTP tab
+        tabs.select(SFTP_frame)
+
+        # Clear listbox
+        SFTP_files_listbox.delete(0, END)
+
+        # List files
+        SFTP_files_listbox.insert(END, "..")
+
+        for f in files:
+            SFTP_files_listbox.insert(END, f)
+
+        # Claer label
+        transfer_progress_string.set("")
+
+        # SFTP connected alert
         alert(
-            f"[SFTP] Attemping to connect to {name} at {username}@{hostname}:{port}")
+            f"[SFTP] Connected to {name} at {username}@{hostname}:{port}")
 
-        # SFTP
-        try:
-            connection = sftp.Connection(
-                host=hostname, username=username, password=password, port=int(port))
-            serverpath = "/root"
-            localpath = "/Users/sunwookim/Documents/Coding projects/SSH-Client-V2/test.txt"
-            SFTP_path_string.set(serverpath)
-            files = connection.listdir(serverpath)
-            connection.cd(serverpath)
-
-            # Change to SFTP tab
-            tabs.select(SFTP_frame)
-
-            # Clear listbox
-            SFTP_files_listbox.delete(0, END)
-
-            # List files
-            SFTP_files_listbox.insert(END, "..")
-
-            for f in files:
-                SFTP_files_listbox.insert(END, f)
-
-            # Claer label
-            transfer_progress_string.set("")
-
-            # SFTP connected alert
-            alert(
-                f"[SFTP] Connected to {name} at {username}@{hostname}:{port}")
-
-            connected = True
-
-        except Exception as e:
-            alert(f"[SFTP] {e}")
-            tabs.select(alerts_frame)
+        connected = True
+    except Exception as e:
+        alert(f"[SFTP] {e}")
+        tabs.select(alerts_frame)
 
 
 # SFTP download
@@ -905,7 +906,7 @@ def RGB():
 ### Main App ###
 # Variables
 width = 1000
-height = 780
+height = 760
 
 cp = ""
 cp_name = ""
@@ -1164,6 +1165,7 @@ SFTP_files_listbox_scrollbar.configure(command=SFTP_files_listbox.yview)
 SFTP_files_listbox_scrollbar.grid(row=0, column=1, sticky="nsew")
 SFTP_files_listbox.configure(yscrollcommand=SFTP_files_listbox_scrollbar.set)
 
+"""
 ### Account status ###
 account_status_frame = Frame(root, width=900)
 account_status_frame.grid(row=2, column=0, columnspan=2)
@@ -1182,6 +1184,7 @@ elif plan == "basic":
 
 elif plan == "premium":
     alert(premium_alert)
+"""
 
 refresh()
 root.mainloop()
