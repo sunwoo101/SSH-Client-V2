@@ -21,163 +21,8 @@ from time import sleep
 import threading
 import math
 
-"""
-### Login Screen ###
-# Variables
-logged = False
 
-# Window
-login = Tk()
-login.title("Remotre - Login")
-x_center = (login.winfo_screenwidth()/2) - 300
-y_center = (login.winfo_screenheight()/2) - 200
-login.geometry("+%d+%d" % (x_center, y_center))
-login.resizable(width=False, height=False)
-
-try:
-    # Load list into variable
-    details_file = open("details.JSON", "rb")
-    details = []
-    details = pickle.load(details_file)
-    details_file.close()
-
-    # Store client details
-    user = details[0]
-    passwd = details[1]
-    plan = details[2]
-    days = details[3]
-
-except:
-    # Add client to database
-    if os.path.isfile("./details.JSON") == False:
-        details_file = open("details.JSON", "wb")
-        details = []
-        pickle.dump(details, details_file)
-        details_file.close()
-
-        user = ""
-        passwd = ""
-        plan = "premium"
-        days = "unlimited"
-
-
-### Functions ###
-# Loop
-def loop():
-    # Show or hide password
-    if show_password_checkbox_variable.get() == 1:
-        password_entry.configure(show="")
-
-    else:
-        password_entry.configure(show="*")
-
-    login.after(5, loop)
-
-
-# Connect to database and login
-def login_check(event=None):
-    global logged, user, days, free_alert, basic_alert, premium_alert
-
-    # Check for correct password and if plan is active
-    if (password_entry.get() == "Password") and (isinstance(days, str) or days > 0):
-        logged = True
-        user = username_entry.get()
-        passwd = password_entry.get()
-
-        if isinstance(days, int):
-            days -= 1
-
-        # Save details
-        details = [user, passwd, plan, days]
-        details_file = open("details.JSON", "wb")
-        pickle.dump(details, details_file)
-        details_file.close()
-
-        # Alert
-        free_alert = f"[Remotre] Welcome {user}. You are currently using the free plan, upgrade to a paid plan to save connections to the cloud"
-        basic_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your basic plan, upgrade to the premium plan to use the SFTP tab"
-        premium_alert = f"[Remotre] Welcome {user}. You have {days} days remaining on your premium plan"
-        login.destroy()
-
-    elif days < 1:
-        login_error_string.set("Your plan has expired")
-
-    else:
-        login_error_string.set("Incorrect username/password")
-
-
-# Frame
-login_frame = Frame(login, relief="ridge", bd=10)
-login_frame.grid(row=1, column=1, padx=150, pady=100)
-
-# Label
-login_string = StringVar()
-login_label = Label(login_frame, textvariable=login_string)
-login_label["font"] = Font(size=38)
-login_string.set("Login")
-login_label.grid(row=1, column=1, columnspan=2, sticky="nsew")
-
-# Username
-username_string = StringVar()
-username_label = Label(login_frame, textvariable=username_string)
-username_label["font"] = Font(size=12)
-username_string.set("Username:")
-username_label.grid(row=2, column=1, sticky="nsew")
-
-username_entry = Entry(login_frame, bd=1)
-username_entry.grid(row=2, column=2, sticky="nsew")
-username_entry.insert(0, user)
-
-# Password
-password_string = StringVar()
-password_label = Label(login_frame, textvariable=password_string)
-password_label["font"] = Font(size=12)
-password_string.set("Password:")
-password_label.grid(row=3, column=1, sticky="nsew")
-
-password_entry = Entry(login_frame, bd=1)
-password_entry.grid(row=3, column=2, sticky="nsew")
-password_entry.configure(show="*")
-password_entry.insert(0, passwd)
-
-show_password_checkbox_variable = IntVar()
-show_password_checkbox = Checkbutton(
-    login_frame, text="Show Password", variable=show_password_checkbox_variable)
-show_password_checkbox.grid(row=4, column=1, columnspan=2)
-
-# Button
-login_button_frame = Frame(login_frame, width=50, height=20)
-login_button_frame.grid_propagate(False)
-Grid.columnconfigure(login_button_frame, 1, weight=1)
-Grid.rowconfigure(login_button_frame, 1, weight=1)
-login_button_frame.grid(row=5, column=1, columnspan=2)
-
-login_button = Button(login_button_frame, text="Login", command=login_check)
-login_button.grid(row=1, column=1, sticky="nsew")
-
-password_entry.bind("<Return>", login_check)
-username_entry.bind("<Return>", login_check)
-
-# Login error
-login_error_string = StringVar()
-login_error_label = Label(login_frame, fg="red",
-                          textvariable=login_error_string)
-login_error_label["font"] = Font(size=12)
-login_error_label.grid(row=6, column=1, columnspan=2, sticky="nsew")
-
-loop()
-login_frame.mainloop()
-
-
-# Show main app when login is successful
-if logged == True:
-    pass
-
-else:
-    exit()
-"""
-
-### Functions ###
+# Functions #
 # Button
 def button(frame, width, height, row, column, text, command, image=None):
     button_frame = Frame(frame, width=width, height=height)
@@ -231,7 +76,7 @@ def connect_ssh():
                 f"[SSH] Attempting to connect to '{name}' at '{username}@{hostname}:{port}' via ssh in a new terminal...")
 
         else:
-            alert(f"[Remotre] Sorry, your OS is not yet supported")
+            alert(f"[Remotely] Sorry, your OS is not yet supported")
 
     except:
         alert("Entries are invalid")
@@ -303,10 +148,10 @@ def connect_sftp():
     """
     # Check if plan supports sftp
     if plan == "free":
-        alert("[Remotre] Please buy our premium plan to use this feature")
+        alert("[Remotely] Please buy our premium plan to use this feature")
 
     elif plan == "basic":
-        alert("[Remotre] Please buy our premium plan to use this feature")
+        alert("[Remotely] Please buy our premium plan to use this feature")
 
     elif plan == "premium":
     """
@@ -547,7 +392,7 @@ def listbox_doubleclick_bind():
 def sftp_menu(event):
     selected = SFTP_files_listbox.get(ACTIVE)
 
-    if (selected != "" and selected != "..") or cp:
+    if (selected != "" and selected != "..") or copy:
         # Menu contents
         menu = Menu(SFTP_files_frame, tearoff=0)
         if selected != "" and selected != "..":
@@ -558,8 +403,8 @@ def sftp_menu(event):
             menu.add_separator()
             menu.add_command(label=f"Copy '{selected}''", command=sftp_copy)
 
-        if cp != "":
-            menu.add_command(label=f"Paste '{cp_name}'", command=sftp_paste)
+        if copy != "":
+            menu.add_command(label=f"Paste '{copy_name}'", command=sftp_paste)
 
         if selected != "" and selected != "..":
             menu.add_separator()
@@ -576,24 +421,24 @@ def sftp_menu(event):
 
 # SFTP copy
 def sftp_copy():
-    global cp, cp_name
+    global copy, copy_name
 
     selected = SFTP_files_listbox.get(ACTIVE)
     n = selected.replace(" ", "\ ")
-    cp = f"{serverpath}/{n}"
-    cp_name = selected.replace(" ", "\ ")
+    copy = f"{serverpath}/{n}"
+    copy_name = selected.replace(" ", "\ ")
 
 
 # SFTP paste
 def sftp_paste():
-    global cp, cp_name
+    global copy, copy_name
 
     # Paste
-    connection.execute(f"cp {cp} {serverpath}/{cp_name}")
+    connection.execute(f"copy {copy} {serverpath}/{copy_name}")
     sftp_refresh()
 
-    cp = ""
-    cp_name = ""
+    copy = ""
+    copy_name = ""
 
 
 # SFTP rename
@@ -759,10 +604,6 @@ def save():
     hostname = hostname_entry.get()
     port = port_entry.get()
 
-    # Set default port
-    if isinstance(port, str):
-        port = 22
-
     # Load list into variable
     logins_file = open("logins.JSON", "rb")
     logins = []
@@ -835,81 +676,159 @@ def delete():
     refresh()
 
 
-# RGB #
-RGB_variable = [235, 52, 52]
+### Login Screen ###
+# Variables
+logged = False
+
+# Window
+login = Tk()
+login.title("Remotely - Login")
+x_center = (login.winfo_screenwidth()/2) - 300
+y_center = (login.winfo_screenheight()/2) - 200
+login.geometry("+%d+%d" % (x_center, y_center))
+login.resizable(width=False, height=False)
+
+try:
+    # Load list into variable
+    details_file = open("details.JSON", "rb")
+    details = []
+    details = pickle.load(details_file)
+    details_file.close()
+
+    # Store client details
+    user = details[0]
+    passwd = details[1]
+    plan = details[2]
+    days = details[3]
+
+except:
+    # Add client to database
+    if os.path.isfile("./details.JSON") == False:
+        details_file = open("details.JSON", "wb")
+        details = []
+        pickle.dump(details, details_file)
+        details_file.close()
+
+        user = ""
+        passwd = ""
+        plan = "premium"
+        days = "unlimited"
 
 
-def RGB():
-    global RGB_variable
-    global RGB_stage
-    list_RGB = list(RGB_variable)
+# Functions #
+# Loop
+def loop():
+    # Show or hide password
+    if show_password_checkbox_variable.get() == 1:
+        password_entry.configure(show="")
 
-    # Stage rgb values #
-    # Stage 1
-    if RGB_variable == (235, 52, 52):
-        RGB_stage = 1
+    else:
+        password_entry.configure(show="*")
 
-    # Stage 2
-    if RGB_variable == (235, 235, 52):
-        RGB_stage = 2
+    login.after(5, loop)
 
-    # Stage 3
-    if RGB_variable == (52, 235, 52):
-        RGB_stage = 3
 
-    # Stage 4
-    if RGB_variable == (52, 235, 235):
-        RGB_stage = 4
+# Connect to database and login
+def login_check(event=None):
+    global logged, user, days, free_alert, basic_alert, premium_alert
 
-    # Stage 5
-    if RGB_variable == (52, 52, 235):
-        RGB_stage = 5
+    # Check for correct password and if plan is active
+    if (password_entry.get() == "Password") and (isinstance(days, str) or days > 0):
+        logged = True
+        user = username_entry.get()
+        passwd = password_entry.get()
 
-    # Stage 6
-    if RGB_variable == (235, 52, 235):
-        RGB_stage = 6
+        if isinstance(days, int):
+            days -= 1
 
-    # Stage switching #
-    # Stage 1
-    if RGB_stage == 1:
-        list_RGB[1] += 1
+        # Save details
+        details = [user, passwd, plan, days]
+        details_file = open("details.JSON", "wb")
+        pickle.dump(details, details_file)
+        details_file.close()
 
-    # Stage 2
-    if RGB_stage == 2:
-        list_RGB[0] -= 1
+        # Alert
+        free_alert = f"[Remotely] Welcome {user}. You are currently using the free plan, upgrade to a paid plan to save connections to the cloud"
+        basic_alert = f"[Remotely] Welcome {user}. You have {days} days remaining on your basic plan, upgrade to the premium plan to use the SFTP tab"
+        premium_alert = f"[Remotely] Welcome {user}. You have {days} days remaining on your premium plan"
+        login.destroy()
 
-    # Stage 3
-    if RGB_stage == 3:
-        list_RGB[2] += 1
+    elif days < 1:
+        login_error_string.set("Your plan has expired")
 
-    # Stage 4
-    if RGB_stage == 4:
-        list_RGB[1] -= 1
+    else:
+        login_error_string.set("Incorrect username/password")
 
-    # Stage 5
-    if RGB_stage == 5:
-        list_RGB[0] += 1
 
-    # Stage 6
-    if RGB_stage == 6:
-        list_RGB[2] -= 1
+# Frame
+login_frame = Frame(login, relief="ridge", bd=10)
+login_frame.grid(row=1, column=1, padx=150, pady=100)
 
-    RGB_variable = tuple(list_RGB)
-    RGB_label.configure(fg="#%02x%02x%02x" % RGB_variable)
-    sleep(0.02)
+# Label
+login_string = StringVar()
+login_label = Label(login_frame, textvariable=login_string)
+login_label["font"] = Font(size=38)
+login_string.set("Login")
+login_label.grid(row=1, column=1, columnspan=2, sticky="nsew")
 
-    RGB_thread = threading.Thread(target=RGB)
-    RGB_thread.daemon = True
-    RGB_thread.start()
+# Username
+username_string = StringVar()
+username_label = Label(login_frame, textvariable=username_string)
+username_label["font"] = Font(size=12)
+username_string.set("Username:")
+username_label.grid(row=2, column=1, sticky="nsew")
+
+username_entry = Entry(login_frame, bd=1)
+username_entry.grid(row=2, column=2, sticky="nsew")
+username_entry.insert(0, user)
+
+# Password
+password_string = StringVar()
+password_label = Label(login_frame, textvariable=password_string)
+password_label["font"] = Font(size=12)
+password_string.set("Password:")
+password_label.grid(row=3, column=1, sticky="nsew")
+
+password_entry = Entry(login_frame, bd=1)
+password_entry.grid(row=3, column=2, sticky="nsew")
+password_entry.configure(show="*")
+password_entry.insert(0, passwd)
+
+show_password_checkbox_variable = IntVar()
+show_password_checkbox = Checkbutton(
+    login_frame, text="Show Password", variable=show_password_checkbox_variable)
+show_password_checkbox.grid(row=4, column=1, columnspan=2)
+
+login_image = PhotoImage(file="./icons/login.png")
+
+# Button
+button(login_frame, width=180, height=50, row=5, column=2,
+       text="Login", command=login_check, image=login_image)
+
+# Login error
+login_error_string = StringVar()
+login_error_label = Label(login_frame, fg="red",
+                          textvariable=login_error_string)
+login_error_label["font"] = Font(size=12)
+login_error_label.grid(row=6, column=1, columnspan=2, sticky="nsew")
+
+loop()
+login_frame.mainloop()
+
+# Show main app when login is successful
+if logged == True:
+    pass
+else:
+    exit()
 
 
 ### Main App ###
 # Variables
 width = 1000
-height = 760
+height = 780
 
-cp = ""
-cp_name = ""
+copy = ""
+copy_name = ""
 
 busy = False
 connected = False
@@ -940,7 +859,7 @@ logins_file.close()
 ### Window setup ###
 # Window
 root = Tk()
-root.title("Remotre")
+root.title("Remotely")
 x_center = (root.winfo_screenwidth()/2) - (width/2)
 y_center = (root.winfo_screenheight()/2) - (height/2)
 root.geometry(f"{width}x{height}+{int(x_center)}+{int(y_center)}")
@@ -963,27 +882,24 @@ toolbar_frame = Frame(root, width=160, height=755)
 toolbar_frame.grid_propagate(False)
 toolbar_frame.grid(row=0, column=0, sticky="nw")
 
-# RGB watermark
-RGB_stage = 1
-RGB_variable = (235, 52, 52)
-RGB_string = StringVar()
-RGB_frame = Frame(toolbar_frame, width=160, height=50)
-RGB_frame.grid_propagate(False)
-Grid.columnconfigure(RGB_frame, 0, weight=1)
-Grid.rowconfigure(RGB_frame, 0, weight=1)
-RGB_frame.grid(row=0, column=0, sticky="nsew")
-RGB_label = Label(RGB_frame, textvariable=RGB_string,
-                  fg="#%02x%02x%02x" % RGB_variable)
+# logo watermark
+logo_string = StringVar()
+logo_frame = Frame(toolbar_frame, width=160, height=50)
+logo_frame.grid_propagate(False)
+Grid.columnconfigure(logo_frame, 0, weight=1)
+Grid.rowconfigure(logo_frame, 0, weight=1)
+logo_frame.grid(row=0, column=0, sticky="nsew")
+logo_label = Label(logo_frame, textvariable=logo_string,
+                  fg="#%02x%02x%02x" % (255, 0, 255))
 
 if platform == "Darwin":
-    RGB_label["font"] = Font(family="arial", size=38)
+    logo_label["font"] = Font(family="arial", size=34)
 
 else:
-    RGB_label["font"] = Font(family="arial", size=28)
+    logo_label["font"] = Font(family="arial", size=28)
 
-RGB_string.set("Remotre")
-RGB_label.grid(row=0, column=0, sticky="nsew")
-RGB()
+logo_string.set("Remotely")
+logo_label.grid(row=0, column=0, sticky="nsew")
 
 # Connect ssh button
 button(toolbar_frame, width=160, height=50, row=1, column=0,
@@ -1127,7 +1043,7 @@ transfer_progress_label = Label(
 transfer_progress_label.grid(row=0, column=4)
 
 # SFTP explorer
-SFTP_explorer_frame = Frame(SFTP_frame, borderwidth=5, relief=RIDGE)
+SFTP_explorer_frame = Frame(SFTP_frame)
 SFTP_explorer_frame.grid(row=1, column=0, sticky="nsew")
 Grid.columnconfigure(SFTP_explorer_frame, 0, weight=1)
 Grid.rowconfigure(SFTP_explorer_frame, 1, weight=1)
@@ -1165,7 +1081,7 @@ SFTP_files_listbox_scrollbar.configure(command=SFTP_files_listbox.yview)
 SFTP_files_listbox_scrollbar.grid(row=0, column=1, sticky="nsew")
 SFTP_files_listbox.configure(yscrollcommand=SFTP_files_listbox_scrollbar.set)
 
-"""
+
 ### Account status ###
 account_status_frame = Frame(root, width=900)
 account_status_frame.grid(row=2, column=0, columnspan=2)
@@ -1184,7 +1100,7 @@ elif plan == "basic":
 
 elif plan == "premium":
     alert(premium_alert)
-"""
+
 
 refresh()
 root.mainloop()
