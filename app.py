@@ -799,9 +799,8 @@ show_password_checkbox = Checkbutton(
     login_frame, text="Show Password", variable=show_password_checkbox_variable)
 show_password_checkbox.grid(row=4, column=1, columnspan=2)
 
-login_image = PhotoImage(file="./icons/login.png")
-
 # Button
+login_image = PhotoImage(file="./icons/login.png")
 button(login_frame, width=180, height=50, row=5, column=2,
        text="Login", command=login_check, image=login_image)
 
