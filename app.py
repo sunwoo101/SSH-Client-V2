@@ -145,17 +145,6 @@ def connect_sftp():
     hostname = hostname_entry.get()
     port = port_entry.get()
 
-    """
-    # Check if plan supports sftp
-    if plan == "free":
-        alert("[Remotely] Please buy our premium plan to use this feature")
-
-    elif plan == "basic":
-        alert("[Remotely] Please buy our premium plan to use this feature")
-
-    elif plan == "premium":
-    """
-
     alert(f"[SFTP] Attemping to connect to {name} at {username}@{hostname}:{port}")
 
     # SFTP
@@ -163,7 +152,7 @@ def connect_sftp():
         connection = sftp.Connection(
             host=hostname, username=username, password=password, port=int(port))
         serverpath = "/root"
-        localpath = "/Users/sunwookim/Documents/Coding projects/SSH-Client-V2/test.txt"
+        localpath = ""
         SFTP_path_string.set(serverpath)
         files = connection.listdir(serverpath)
         connection.cd(serverpath)
@@ -675,156 +664,10 @@ def delete():
 
     refresh()
 
-
-### Login Screen ###
-# Variables
-logged = False
-
-# Window
-login = Tk()
-login.title("Remotely - Login")
-x_center = (login.winfo_screenwidth()/2) - 300
-y_center = (login.winfo_screenheight()/2) - 200
-login.geometry("+%d+%d" % (x_center, y_center))
-login.resizable(width=False, height=False)
-
-try:
-    # Load list into variable
-    details_file = open("details.JSON", "rb")
-    details = []
-    details = pickle.load(details_file)
-    details_file.close()
-
-    # Store client details
-    user = details[0]
-    passwd = details[1]
-    plan = details[2]
-    days = details[3]
-
-except:
-    # Add client to database
-    if os.path.isfile("./details.JSON") == False:
-        details_file = open("details.JSON", "wb")
-        details = []
-        pickle.dump(details, details_file)
-        details_file.close()
-
-        user = ""
-        passwd = ""
-        plan = "premium"
-        days = "unlimited"
-
-
-# Functions #
-# Loop
-def loop():
-    # Show or hide password
-    if show_password_checkbox_variable.get() == 1:
-        password_entry.configure(show="")
-
-    else:
-        password_entry.configure(show="*")
-
-    login.after(5, loop)
-
-
-# Connect to database and login
-def login_check(event=None):
-    global logged, user, days, free_alert, basic_alert, premium_alert
-
-    # Check for correct password and if plan is active
-    if (password_entry.get() == "Password") and (isinstance(days, str) or days > 0):
-        logged = True
-        user = username_entry.get()
-        passwd = password_entry.get()
-
-        if isinstance(days, int):
-            days -= 1
-
-        # Save details
-        details = [user, passwd, plan, days]
-        details_file = open("details.JSON", "wb")
-        pickle.dump(details, details_file)
-        details_file.close()
-
-        # Alert
-        free_alert = f"[Remotely] Welcome {user}. You are currently using the free plan, upgrade to a paid plan to save connections to the cloud"
-        basic_alert = f"[Remotely] Welcome {user}. You have {days} days remaining on your basic plan, upgrade to the premium plan to use the SFTP tab"
-        premium_alert = f"[Remotely] Welcome {user}. You have {days} days remaining on your premium plan"
-        login.destroy()
-
-    elif days < 1:
-        login_error_string.set("Your plan has expired")
-
-    else:
-        login_error_string.set("Incorrect username/password")
-
-
-# Frame
-login_frame = Frame(login, relief="ridge", bd=10)
-login_frame.grid(row=1, column=1, padx=150, pady=100)
-
-# Label
-login_string = StringVar()
-login_label = Label(login_frame, textvariable=login_string)
-login_label["font"] = Font(size=38)
-login_string.set("Login")
-login_label.grid(row=1, column=1, columnspan=2, sticky="nsew")
-
-# Username
-username_string = StringVar()
-username_label = Label(login_frame, textvariable=username_string)
-username_label["font"] = Font(size=12)
-username_string.set("Username:")
-username_label.grid(row=2, column=1, sticky="nsew")
-
-username_entry = Entry(login_frame, bd=1)
-username_entry.grid(row=2, column=2, sticky="nsew")
-username_entry.insert(0, user)
-
-# Password
-password_string = StringVar()
-password_label = Label(login_frame, textvariable=password_string)
-password_label["font"] = Font(size=12)
-password_string.set("Password:")
-password_label.grid(row=3, column=1, sticky="nsew")
-
-password_entry = Entry(login_frame, bd=1)
-password_entry.grid(row=3, column=2, sticky="nsew")
-password_entry.configure(show="*")
-password_entry.insert(0, passwd)
-
-show_password_checkbox_variable = IntVar()
-show_password_checkbox = Checkbutton(
-    login_frame, text="Show Password", variable=show_password_checkbox_variable)
-show_password_checkbox.grid(row=4, column=1, columnspan=2)
-
-# Button
-login_image = PhotoImage(file="./icons/login.png")
-button(login_frame, width=180, height=50, row=5, column=2,
-       text="Login", command=login_check, image=login_image)
-
-# Login error
-login_error_string = StringVar()
-login_error_label = Label(login_frame, fg="red",
-                          textvariable=login_error_string)
-login_error_label["font"] = Font(size=12)
-login_error_label.grid(row=6, column=1, columnspan=2, sticky="nsew")
-
-loop()
-login_frame.mainloop()
-
-# Show main app when login is successful
-if logged == True:
-    pass
-else:
-    exit()
-
-
 ### Main App ###
 # Variables
 width = 1000
-height = 780
+height = 755
 
 copy = ""
 copy_name = ""
@@ -1079,27 +922,6 @@ SFTP_files_listbox_scrollbar = Scrollbar(SFTP_files_frame, orient="vertical")
 SFTP_files_listbox_scrollbar.configure(command=SFTP_files_listbox.yview)
 SFTP_files_listbox_scrollbar.grid(row=0, column=1, sticky="nsew")
 SFTP_files_listbox.configure(yscrollcommand=SFTP_files_listbox_scrollbar.set)
-
-
-### Account status ###
-account_status_frame = Frame(root, width=900)
-account_status_frame.grid(row=2, column=0, columnspan=2)
-account_status_label_string = StringVar()
-account_status_label = Label(
-    account_status_frame, textvariable=account_status_label_string)
-account_status_label_string.set(f"{plan.capitalize()}: {days} days remaining")
-account_status_label.grid(row=0, column=0)
-
-# Account alert
-if plan == "free":
-    alert(free_alert)
-
-elif plan == "basic":
-    alert(basic_alert)
-
-elif plan == "premium":
-    alert(premium_alert)
-
 
 refresh()
 root.mainloop()

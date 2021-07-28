@@ -1,0 +1,1 @@
+Make sure you have installed pysftp with "pip install pysftp" on windows or "pip3 install pysftp" on mac
